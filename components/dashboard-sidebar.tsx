@@ -60,9 +60,11 @@ export function DashboardSidebar() {
           </Button>
         </div>
         <div className="px-2 mt-4">
-          <Button className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300" size="lg">
-            <Plus className="w-5 h-5" />
-            Create New Series
+          <Button className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300" size="lg" asChild>
+            <Link href="/dashboard/create">
+              <Plus className="w-5 h-5" />
+              Create New Series
+            </Link>
           </Button>
         </div>
       </SidebarHeader>
