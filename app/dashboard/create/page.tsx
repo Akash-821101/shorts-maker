@@ -17,7 +17,9 @@ import { VoiceCard } from "@/components/create-series/voice-card";
 import { MusicCard } from "@/components/create-series/music-card";
 import { StyleCard } from "@/components/create-series/style-card";
 import { CaptionCard } from "@/components/create-series/caption-card";
-import { Type } from "lucide-react";
+import { Type, PlaySquare, Camera, Smartphone, Calendar, Clock, CheckCircle2, Rocket, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const STEPS = [
   { id: 1, name: "Niche" },
@@ -48,6 +50,10 @@ export default function CreateSeriesPage() {
   const [musicGenreFilter, setMusicGenreFilter] = useState("All");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedCaption, setSelectedCaption] = useState<string | null>(null);
+  const [seriesName, setSeriesName] = useState("");
+  const [videoDuration, setVideoDuration] = useState("60s");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [publishTime, setPublishTime] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollLeft = () => {
@@ -502,23 +508,144 @@ export default function CreateSeriesPage() {
         </div>
       </div>
 
-      {/* Placeholder for Next Steps */}
-      {currentStep > 5 && (
-        <div className="text-center py-24 bg-accent/20 rounded-2xl border-2 border-border/50 border-dashed animate-in fade-in zoom-in-95 duration-500">
-          <h2 className="text-3xl font-bold mb-3">Step {currentStep}: Review</h2>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            This step will handle final review and rendering.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button variant="outline" size="lg" className="rounded-full px-8 cursor-pointer" onClick={handleBack}>
-              Go Back
-            </Button>
-            <Button size="lg" className="rounded-full px-8 cursor-pointer disabled:cursor-not-allowed" onClick={handleNext} disabled={currentStep === 6}>
-              Generate Series
-            </Button>
-          </div>
+      {/* Step 6: Review & Schedule */}
+      <div className={cn(
+        "transition-all duration-500 ease-in-out", 
+        currentStep === 6 ? "opacity-100 translate-y-0" : "opacity-0 hidden translate-y-4"
+      )}>
+        <Card className="border-border/40 shadow-xl shadow-primary/5 rounded-3xl overflow-hidden bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-6 pt-8 px-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Rocket className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Review & Schedule</CardTitle>
+                <CardDescription className="text-base mt-1">Configure your series details and schedule the first video.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-8 pb-8 space-y-8">
+            
+            {/* Series Name */}
+            <div className="space-y-3">
+              <Label htmlFor="seriesName" className="text-sm font-semibold text-foreground">Series Name</Label>
+              <Input 
+                id="seriesName"
+                placeholder="e.g. Daily Tech Facts"
+                value={seriesName}
+                onChange={(e) => setSeriesName(e.target.value)}
+                className="h-14 text-lg rounded-xl bg-card border-border/50 focus-visible:ring-primary/20"
+              />
+            </div>
+
+            {/* Video Duration */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-foreground">Video Duration</Label>
+              <div className="flex gap-3">
+                {["30s", "60s", "90s"].map((duration) => (
+                  <button
+                    key={duration}
+                    onClick={() => setVideoDuration(duration)}
+                    className={cn(
+                      "flex-1 h-12 rounded-xl border-2 font-medium transition-all duration-200 cursor-pointer",
+                      videoDuration === duration 
+                        ? "border-primary bg-primary/10 text-primary" 
+                        : "border-border/40 hover:border-primary/40 bg-card text-muted-foreground"
+                    )}
+                  >
+                    {duration}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Platforms */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-foreground">Target Platforms</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { id: "youtube", name: "YouTube Shorts", icon: PlaySquare },
+                  { id: "tiktok", name: "TikTok", icon: Smartphone },
+                  { id: "instagram", name: "Instagram Reels", icon: Camera },
+                  { id: "email", name: "Email", icon: Mail },
+                ].map((platform) => {
+                  const isSelected = selectedPlatforms.includes(platform.id);
+                  const Icon = platform.icon;
+                  return (
+                    <button
+                      key={platform.id}
+                      onClick={() => setSelectedPlatforms(prev => 
+                        prev.includes(platform.id) 
+                          ? prev.filter(p => p !== platform.id)
+                          : [...prev, platform.id]
+                      )}
+                      className={cn(
+                        "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer text-left",
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
+                          : "border-border/40 hover:border-primary/40 bg-card hover:bg-accent/10"
+                      )}
+                    >
+                      <div className={cn("p-2 rounded-lg transition-colors", isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className={cn("font-medium transition-colors", isSelected ? "text-foreground" : "text-muted-foreground")}>{platform.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Publish Schedule */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-foreground">Time to Publish First Video</Label>
+              <div className="relative">
+                <Input 
+                  type="datetime-local" 
+                  value={publishTime}
+                  onChange={(e) => setPublishTime(e.target.value)}
+                  className="h-14 w-full pl-12 rounded-xl bg-card border-border/50 text-foreground cursor-pointer focus-visible:ring-primary/20 appearance-none"
+                />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+              </div>
+              <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-primary" />
+                Note: Video will be generated 3-6 hours before video publish.
+              </p>
+            </div>
+
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-between mt-10">
+          <Button 
+            variant="outline"
+            size="lg" 
+            className="rounded-xl px-8 h-14 text-lg font-medium shadow-sm transition-all duration-300 hover:bg-accent cursor-pointer"
+            onClick={handleBack}
+          >
+            Go Back
+          </Button>
+          <Button 
+            size="lg" 
+            className="rounded-xl px-12 h-14 text-lg font-bold shadow-xl shadow-primary/25 transition-all duration-500 ease-in-out hover:scale-105 hover:shadow-primary/40 bg-gradient-to-r from-primary to-primary/90 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
+            onClick={() => {
+              // TODO: Implement actual submission API logic
+              console.log("Form Submitted:", { 
+                niche: selectedNiche, language: selectedLanguage, voice: selectedVoice, 
+                music: selectedMusic, style: selectedStyle, caption: selectedCaption,
+                seriesName, videoDuration, selectedPlatforms, publishTime 
+              });
+              alert("Series Scheduled Successfully!");
+            }}
+            disabled={!seriesName || selectedPlatforms.length === 0 || !publishTime}
+          >
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            Schedule Series
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
