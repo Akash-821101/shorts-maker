@@ -1,17 +1,13 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function syncUser() {
   const user = await currentUser();
   if (!user) return null;
 
-  // Initialize Supabase admin client
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseAdmin = createAdminClient();
 
   const primaryEmail = user.emailAddresses.find(
     (email) => email.id === user.primaryEmailAddressId
