@@ -14,12 +14,7 @@ import {
   Video,
 } from "lucide-react";
 import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
-import { syncUser } from "@/app/actions/user";
-
-export default async function Home() {
-  // Sync user on page load (runs once when visiting root)
-  await syncUser();
-
+export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans overflow-clip">
       {/* Navbar */}
@@ -38,10 +33,10 @@ export default async function Home() {
           </nav>
           <div className="flex items-center gap-4">
             <Show when="signed-out">
-              <SignInButton mode="modal" asChild>
+              <SignInButton mode="modal">
                 <Button variant="ghost" className="hidden sm:inline-flex cursor-pointer">Log in</Button>
               </SignInButton>
-              <SignUpButton mode="modal" asChild>
+              <SignUpButton mode="modal">
                 <Button className="rounded-full px-6 cursor-pointer">Get Started</Button>
               </SignUpButton>
             </Show>
@@ -77,7 +72,7 @@ export default async function Home() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
               <Show when="signed-out">
-                <SignUpButton mode="modal" asChild>
+                <SignUpButton mode="modal">
                   <Button size="lg" className="rounded-full h-14 px-8 text-lg font-semibold shadow-xl shadow-primary/25 w-full sm:w-auto cursor-pointer">
                     Start Generating for Free
                     <Zap className="ml-2 w-5 h-5 fill-current/20" />
@@ -211,7 +206,7 @@ export default async function Home() {
               Join thousands of creators who are automating their video content with Shorts-Maker.
             </p>
             <Show when="signed-out">
-              <SignUpButton mode="modal" asChild>
+              <SignUpButton mode="modal">
                 <Button size="lg" variant="secondary" className="rounded-full h-14 px-10 text-lg font-bold shadow-2xl cursor-pointer">
                   Get Started for Free
                 </Button>
