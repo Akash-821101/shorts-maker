@@ -11,10 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { LANGUAGES, VOICES } from "@/lib/data/voices";
 import { MUSIC_TRACKS, MUSIC_GENRES } from "@/lib/data/music";
 import { VISUAL_STYLES } from "@/lib/data/styles";
+import { CAPTION_STYLES } from "@/lib/data/captions";
 import { LanguageSelector } from "@/components/create-series/language-selector";
 import { VoiceCard } from "@/components/create-series/voice-card";
 import { MusicCard } from "@/components/create-series/music-card";
 import { StyleCard } from "@/components/create-series/style-card";
+import { CaptionCard } from "@/components/create-series/caption-card";
+import { Type } from "lucide-react";
 
 const STEPS = [
   { id: 1, name: "Niche" },
@@ -44,6 +47,7 @@ export default function CreateSeriesPage() {
   const [selectedMusic, setSelectedMusic] = useState<string[]>([]);
   const [musicGenreFilter, setMusicGenreFilter] = useState("All");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedCaption, setSelectedCaption] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollLeft = () => {
@@ -445,19 +449,72 @@ export default function CreateSeriesPage() {
         </div>
       </div>
 
+      {/* Step 5: Captions */}
+      <div className={cn(
+        "transition-all duration-500 ease-in-out", 
+        currentStep === 5 ? "opacity-100 translate-y-0" : "opacity-0 hidden translate-y-4"
+      )}>
+        <Card className="border-border/40 shadow-xl shadow-primary/5 rounded-3xl overflow-hidden bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-6 pt-8 px-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Type className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Animated Captions</CardTitle>
+                <CardDescription className="text-base mt-1">Select the subtitle animation style for your video.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-8 pb-8">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {CAPTION_STYLES.map((style) => (
+                <CaptionCard 
+                  key={style.id}
+                  styleConfig={style}
+                  isSelected={selectedCaption === style.id}
+                  onSelect={setSelectedCaption}
+                />
+              ))}
+            </div>
+
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-between mt-10">
+          <Button 
+            variant="outline"
+            size="lg" 
+            className="rounded-xl px-8 h-14 text-lg font-medium shadow-sm transition-all duration-300 hover:bg-accent cursor-pointer"
+            onClick={handleBack}
+          >
+            Go Back
+          </Button>
+          <Button 
+            size="lg" 
+            className="rounded-xl px-12 h-14 text-lg font-bold shadow-xl shadow-primary/25 transition-all duration-500 ease-in-out hover:scale-105 hover:shadow-primary/40 bg-gradient-to-r from-primary to-primary/90 cursor-pointer disabled:cursor-not-allowed disabled:hover:scale-100"
+            onClick={handleNext}
+            disabled={!selectedCaption}
+          >
+            Review & Finish
+          </Button>
+        </div>
+      </div>
+
       {/* Placeholder for Next Steps */}
-      {currentStep > 4 && (
+      {currentStep > 5 && (
         <div className="text-center py-24 bg-accent/20 rounded-2xl border-2 border-border/50 border-dashed animate-in fade-in zoom-in-95 duration-500">
-          <h2 className="text-3xl font-bold mb-3">Step {currentStep}: {currentStep === 5 ? "Captions" : "Review"}</h2>
+          <h2 className="text-3xl font-bold mb-3">Step {currentStep}: Review</h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            This step will handle {currentStep === 5 ? "captions and overlays" : "final review and rendering"}.
+            This step will handle final review and rendering.
           </p>
           <div className="flex justify-center gap-4">
             <Button variant="outline" size="lg" className="rounded-full px-8 cursor-pointer" onClick={handleBack}>
               Go Back
             </Button>
             <Button size="lg" className="rounded-full px-8 cursor-pointer disabled:cursor-not-allowed" onClick={handleNext} disabled={currentStep === 6}>
-              Next Step (Prototype)
+              Generate Series
             </Button>
           </div>
         </div>
