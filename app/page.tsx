@@ -5,24 +5,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   PlayCircle,
   Calendar,
-  YoutubeLogo,
-  InstagramLogo,
-  TiktokLogo,
-  EnvelopeSimple,
-  Sparkle,
-  Lightning,
-  VideoCamera,
-} from "@phosphor-icons/react/dist/ssr";
-
+  MonitorPlay,
+  Camera,
+  Music,
+  Mail,
+  Sparkles,
+  Zap,
+  Video,
+} from "lucide-react";
+import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen bg-background font-sans overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-background font-sans overflow-clip">
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg">
-              <PlayCircle weight="fill" className="text-primary w-6 h-6" />
+              <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
             </div>
             <span className="font-bold text-xl tracking-tight">Shorts-Maker</span>
           </div>
@@ -32,8 +32,20 @@ export default function Home() {
             <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="hidden sm:inline-flex">Log in</Button>
-            <Button className="rounded-full px-6">Get Started</Button>
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <Button variant="ghost" className="hidden sm:inline-flex cursor-pointer">Log in</Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button className="rounded-full px-6 cursor-pointer">Get Started</Button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Button variant="ghost" asChild className="hidden sm:inline-flex cursor-pointer">
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <UserButton />
+            </Show>
           </div>
         </div>
       </header>
@@ -43,27 +55,39 @@ export default function Home() {
         <section className="relative pt-24 pb-32 lg:pt-36 lg:pb-40 overflow-hidden">
           {/* Background Glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-8 backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <Sparkle className="w-4 h-4 mr-2" />
+              <Sparkles className="w-4 h-4 mr-2" />
               AI-Powered Video Generation 2.0 is Here
             </div>
-            
+
             <h1 className="max-w-4xl mx-auto text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
               Automate Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-primary bg-[length:200%_auto] animate-text-gradient">Viral Success</span>
             </h1>
-            
+
             <p className="max-w-2xl mx-auto text-xl text-muted-foreground mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
               Generate stunning AI shorts and auto-schedule them to YouTube, Instagram, TikTok, and Email. Grow your audience on autopilot.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-              <Button size="lg" className="rounded-full h-14 px-8 text-lg font-semibold shadow-xl shadow-primary/25 w-full sm:w-auto">
-                Start Generating for Free
-                <Lightning weight="fill" className="ml-2 w-5 h-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg font-medium w-full sm:w-auto bg-background/50 backdrop-blur-md border-border/50">
+              <Show when="signed-out">
+                <SignUpButton mode="modal">
+                  <Button size="lg" className="rounded-full h-14 px-8 text-lg font-semibold shadow-xl shadow-primary/25 w-full sm:w-auto cursor-pointer">
+                    Start Generating for Free
+                    <Zap className="ml-2 w-5 h-5 fill-current/20" />
+                  </Button>
+                </SignUpButton>
+              </Show>
+              <Show when="signed-in">
+                <Button size="lg" asChild className="rounded-full h-14 px-8 text-lg font-semibold shadow-xl shadow-primary/25 w-full sm:w-auto cursor-pointer">
+                  <Link href="/dashboard">
+                    Go to Dashboard
+                    <Zap className="ml-2 w-5 h-5 fill-current/20" />
+                  </Link>
+                </Button>
+              </Show>
+              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg font-medium w-full sm:w-auto bg-background/50 backdrop-blur-md border-border/50 cursor-pointer">
                 View Demo
                 <PlayCircle className="ml-2 w-5 h-5" />
               </Button>
@@ -71,10 +95,10 @@ export default function Home() {
 
             {/* Platform Icons */}
             <div className="mt-16 pt-8 border-t border-border/40 flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-70">
-              <div className="flex items-center gap-2 text-muted-foreground font-medium"><YoutubeLogo weight="fill" className="w-6 h-6" /> YouTube</div>
-              <div className="flex items-center gap-2 text-muted-foreground font-medium"><InstagramLogo weight="fill" className="w-6 h-6" /> Instagram</div>
-              <div className="flex items-center gap-2 text-muted-foreground font-medium"><TiktokLogo weight="fill" className="w-6 h-6" /> TikTok</div>
-              <div className="flex items-center gap-2 text-muted-foreground font-medium"><EnvelopeSimple weight="fill" className="w-6 h-6" /> Email</div>
+              <div className="flex items-center gap-2 text-muted-foreground font-medium"><MonitorPlay className="w-6 h-6" /> YouTube</div>
+              <div className="flex items-center gap-2 text-muted-foreground font-medium"><Camera className="w-6 h-6" /> Instagram</div>
+              <div className="flex items-center gap-2 text-muted-foreground font-medium"><Music className="w-6 h-6" /> TikTok</div>
+              <div className="flex items-center gap-2 text-muted-foreground font-medium"><Mail className="w-6 h-6" /> Email</div>
             </div>
           </div>
         </section>
@@ -90,10 +114,10 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg">
+              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg rounded-md">
                 <CardContent className="p-8">
                   <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                    <VideoCamera weight="duotone" className="w-6 h-6 text-primary" />
+                    <Video className="w-6 h-6 text-primary fill-primary/20" />
                   </div>
                   <h3 className="text-xl font-semibold mb-3">AI Video Generator</h3>
                   <p className="text-muted-foreground leading-relaxed">
@@ -102,10 +126,10 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg">
+              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg rounded-md">
                 <CardContent className="p-8">
                   <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                    <Calendar weight="duotone" className="w-6 h-6 text-primary" />
+                    <Calendar className="w-6 h-6 text-primary fill-primary/20" />
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Auto-Scheduler</h3>
                   <p className="text-muted-foreground leading-relaxed">
@@ -114,10 +138,10 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg">
+              <Card className="bg-background/60 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-colors duration-300 shadow-lg rounded-md">
                 <CardContent className="p-8">
                   <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                    <Lightning weight="duotone" className="w-6 h-6 text-primary" />
+                    <Zap className="w-6 h-6 text-primary fill-primary/20" />
                   </div>
                   <h3 className="text-xl font-semibold mb-3">Cross-Platform Sync</h3>
                   <p className="text-muted-foreground leading-relaxed">
@@ -131,9 +155,9 @@ export default function Home() {
 
         {/* How It Works */}
         <section id="how-it-works" className="py-24 relative overflow-hidden">
-           {/* Decorative elements */}
-           <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-           
+          {/* Decorative elements */}
+          <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">How Shorts-Maker Works</h2>
@@ -175,15 +199,24 @@ export default function Home() {
         <section className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
           {/* Abstract pattern */}
           <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiLz48L3N2Zz4=')] [background-size:24px_24px]" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to scale your audience?</h2>
             <p className="text-xl opacity-90 mb-10 max-w-2xl mx-auto">
               Join thousands of creators who are automating their video content with Shorts-Maker.
             </p>
-            <Button size="lg" variant="secondary" className="rounded-full h-14 px-10 text-lg font-bold shadow-2xl">
-              Get Started for Free
-            </Button>
+            <Show when="signed-out">
+              <SignUpButton mode="modal">
+                <Button size="lg" variant="secondary" className="rounded-full h-14 px-10 text-lg font-bold shadow-2xl cursor-pointer">
+                  Get Started for Free
+                </Button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Button size="lg" variant="secondary" asChild className="rounded-full h-14 px-10 text-lg font-bold shadow-2xl cursor-pointer">
+                <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+            </Show>
           </div>
         </section>
       </main>
@@ -194,7 +227,7 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <PlayCircle weight="fill" className="text-primary w-6 h-6" />
+                <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
                 <span className="font-bold text-xl">Shorts-Maker</span>
               </div>
               <p className="text-muted-foreground max-w-sm">
