@@ -29,7 +29,7 @@ export default async function DashboardPage() {
               : `${items.length} series`}
           </p>
         </div>
-        <Button asChild className="cursor-pointer">
+        <Button asChild className="cursor-pointer rounded-md">
           <Link href="/dashboard/create">
             <Plus className="w-4 h-4 mr-2" /> New Series
           </Link>

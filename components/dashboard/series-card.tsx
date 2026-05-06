@@ -38,8 +38,10 @@ import {
 
 const STATUS_BADGE: Record<SeriesStatus, { label: string; className: string }> = {
   scheduled: { label: 'Scheduled', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20' },
-  active:    { label: 'Active',    className: 'bg-green-500/15 text-green-500 border-green-500/20' },
-  paused:    { label: 'Paused',   className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
+  draft: { label: 'draft', className: 'bg-green-500/15 text-green-500 border-green-500/20' },
+  generating: { label: 'generating', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
+  failed: { label: 'failed', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
+  published: { label: 'published', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
 }
 
 interface Props {
@@ -52,7 +54,7 @@ export function SeriesCard({ series }: Props) {
 
   const style = VISUAL_STYLES.find(s => s.id === series.style_id) ?? VISUAL_STYLES[0]
   const badge = STATUS_BADGE[series.status] ?? STATUS_BADGE.scheduled
-  const isPaused = series.status === 'paused'
+  const isPaused = series.status === 'draft'
 
   async function handleDelete() {
     await deleteSeries()

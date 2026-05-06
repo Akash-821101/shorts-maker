@@ -48,12 +48,12 @@ export function DashboardSidebar() {
             <div className="bg-primary/10 p-1.5 rounded-lg">
               <Zap className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-bold text-lg tracking-tight">Shorts Maker</span>
+            <Link href="/" className="font-bold text-lg tracking-tight cursor-pointer">Shorts Maker</Link>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleSidebar} 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
             className="cursor-pointer text-muted-foreground hover:text-foreground"
           >
             <PanelLeftClose className="w-5 h-5" />

@@ -24,7 +24,7 @@ export default function Home() {
             <div className="bg-primary/10 p-2 rounded-lg">
               <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
             </div>
-            <span className="font-bold text-xl tracking-tight">Shorts-Maker</span>
+            <Link href="/" className="font-bold text-xl tracking-tight cursor-pointer">Shorts-Maker</Link>
           </div>
           <nav className="hidden md:flex gap-6">
             <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</Link>
