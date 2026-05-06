@@ -1,5 +1,0 @@
-ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
-ALTER TABLE public.videos ALTER COLUMN script DROP NOT NULL;
-ALTER TABLE public.videos ALTER COLUMN audio_url DROP NOT NULL;
-ALTER TABLE public.videos ALTER COLUMN captions DROP NOT NULL;
-ALTER TABLE public.videos ALTER COLUMN image_urls DROP NOT NULL;
