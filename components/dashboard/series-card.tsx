@@ -1,0 +1,177 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState } from 'react'
+import {
+  MoreVertical,
+  Pencil,
+  Pause,
+  Play,
+  Trash2,
+  Video,
+  Zap,
+  Loader2,
+} from 'lucide-react'
+import { VISUAL_STYLES } from '@/lib/data/styles'
+import { formatDate, formatNiche } from '@/lib/utils'
+import type { Series, SeriesStatus } from '@/lib/types/series'
+import { useSeriesActions } from '@/hooks/use-series-actions'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
+const STATUS_BADGE: Record<SeriesStatus, { label: string; className: string }> = {
+  scheduled: { label: 'Scheduled', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20' },
+  active:    { label: 'Active',    className: 'bg-green-500/15 text-green-500 border-green-500/20' },
+  paused:    { label: 'Paused',   className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
+}
+
+interface Props {
+  series: Series
+}
+
+export function SeriesCard({ series }: Props) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { loading, togglePause, deleteSeries, generateVideo } = useSeriesActions(series.id, series.status)
+
+  const style = VISUAL_STYLES.find(s => s.id === series.style_id) ?? VISUAL_STYLES[0]
+  const badge = STATUS_BADGE[series.status] ?? STATUS_BADGE.scheduled
+  const isPaused = series.status === 'paused'
+
+  async function handleDelete() {
+    await deleteSeries()
+    setShowDeleteDialog(false)
+  }
+
+  return (
+    <>
+      <div className="group flex flex-col rounded-2xl border border-border/40 bg-card overflow-hidden shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+        {/* Thumbnail */}
+        <div className="relative w-full aspect-[9/16] overflow-hidden bg-muted">
+          <Image
+            src={style.imagePath}
+            alt={style.title}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+
+          {/* Status badge */}
+          <div className="absolute top-3 left-3">
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm bg-background/70 ${badge.className}`}>
+              {badge.label}
+            </span>
+          </div>
+
+          {/* Hover action overlay — slides up from bottom */}
+          <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+            <div className="bg-gradient-to-t from-black/95 via-black/75 to-transparent px-3 pt-14 pb-3 flex flex-col gap-2">
+              <button
+                onClick={generateVideo}
+                disabled={loading === 'generate'}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold py-2.5 hover:bg-primary/90 transition-colors disabled:opacity-60 cursor-pointer"
+              >
+                {loading === 'generate'
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Zap className="w-3.5 h-3.5" />}
+                Generate Video
+              </button>
+              <Link
+                href={`/dashboard/series/${series.id}/videos`}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors"
+              >
+                <Video className="w-3.5 h-3.5" />
+                View Videos
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Info row */}
+        <div className="flex items-start justify-between gap-2 px-4 pt-3 pb-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm leading-snug truncate">{series.series_name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {formatNiche(series.niche, series.custom_niche)} · {series.video_duration}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{formatDate(series.created_at)}</p>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-1 mt-0.5 rounded-lg cursor-pointer">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 rounded-xl p-1.5">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                <Link href={`/dashboard/create?id=${series.id}`}>
+                  <Pencil className="w-4 h-4 mr-2" /> Edit
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={togglePause}
+                disabled={loading === 'pause'}
+                className="rounded-lg cursor-pointer"
+              >
+                {loading === 'pause' ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isPaused ? (
+                  <Play className="w-4 h-4 mr-2" />
+                ) : (
+                  <Pause className="w-4 h-4 mr-2" />
+                )}
+                {isPaused ? 'Resume' : 'Pause'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1" />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+      </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete series?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{series.series_name}</strong> and all its scheduled jobs will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading === 'delete'} className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={loading === 'delete'}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
