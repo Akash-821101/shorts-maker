@@ -2,24 +2,6 @@ import { inngest } from '@/lib/inngest/client'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Series } from '@/lib/types/series'
 
-// ─── Hello World smoke-test ───────────────────────────────────────────────────
-/**
- * Trigger event: "test/hello.world"
- * Payload: { data: { name: string } }
- */
-export const helloWorld = inngest.createFunction(
-  { id: 'hello-world', triggers: [{ event: 'test/hello.world' }] },
-  async ({ event, step }) => {
-    const message = await step.run('build-greeting', async () => {
-      return `Hello, ${event.data.name ?? 'World'}! Inngest is working.`
-    })
-
-    await step.sleep('wait-a-moment', '1s')
-
-    return { message }
-  },
-)
-
 // ─── Generate Video ───────────────────────────────────────────────────────────
 /**
  * Trigger event : "video/generate"
@@ -106,20 +88,19 @@ export const generateVideo = inngest.createFunction(
         })
       })
 
-      // ── Step 7: Save everything to database ──────────────────────────────────
+      // ── Step 7: Save all assets to database (video still rendering) ─────────
       await step.run('finalize-video', async () => {
         const supabase = createAdminClient()
-        
-        // 1. Update video record with final data
+
         const { error: videoError } = await supabase
           .from('videos')
           .update({
-            status: 'ready',
+            status: 'processing',
             script: script,
             audio_url: voice.audioUrl,
             captions: captions,
-            image_urls: images.images, // Now a JSONB array of {sceneId, url}
-            video_url: '', // Placeholder for future use
+            image_urls: images.images,
+            video_url: '',
           })
           .eq('id', videoId)
 
@@ -127,7 +108,49 @@ export const generateVideo = inngest.createFunction(
           throw new Error(`Failed to finalize video: ${videoError.message}`)
         }
 
-        // 2. Update series status
+        return { success: true }
+      })
+
+      // ── Step 8: Render final MP4 with Remotion Lambda ────────────────────────
+      await step.run('render-video', async () => {
+        const { renderVideo } = await import('@/lib/render')
+        const { CAPTION_STYLES } = await import('@/lib/data/captions')
+
+        const captionStyle =
+          CAPTION_STYLES.find((s) => s.id === series.caption_id) ?? CAPTION_STYLES[0]
+
+        const lastWord = captions.words[captions.words.length - 1]
+        const durationInSeconds = lastWord ? lastWord.end + 0.5 : 60
+
+        await renderVideo({
+          videoId,
+          seriesId,
+          audioUrl: voice.audioUrl,
+          scenes: images.images.map((img: { sceneId: number; url: string }) => ({
+            sceneId: img.sceneId,
+            imageUrl: img.url,
+          })),
+          words: captions.words,
+          captionStyle,
+          durationInSeconds,
+        })
+
+        return { success: true }
+      })
+
+      // ── Step 9: Mark video and series as published ───────────────────────────
+      await step.run('mark-published', async () => {
+        const supabase = createAdminClient()
+
+        const { error: videoError } = await supabase
+          .from('videos')
+          .update({ status: 'ready' })
+          .eq('id', videoId)
+
+        if (videoError) {
+          throw new Error(`Failed to mark video ready: ${videoError.message}`)
+        }
+
         const { error: seriesError } = await supabase
           .from('series')
           .update({ status: 'published' })
