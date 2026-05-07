@@ -1,4 +1,4 @@
-export type SeriesStatus = 'scheduled' | 'active' | 'paused'
+export type SeriesStatus = 'scheduled' | 'draft' | 'generating' | 'failed' | 'published'
 
 export interface Series {
   id: string

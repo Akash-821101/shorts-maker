@@ -13,7 +13,7 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
   const [currentStatus, setCurrentStatus] = useState<SeriesStatus>(status)
 
   async function togglePause() {
-    const nextStatus: SeriesStatus = currentStatus === 'paused' ? 'scheduled' : 'paused'
+    const nextStatus: SeriesStatus = currentStatus === 'draft' ? 'scheduled' : 'draft'
     setCurrentStatus(nextStatus)
     setLoading('pause')
     try {
@@ -23,7 +23,7 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
         body: JSON.stringify({ status: nextStatus }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      toast.success(nextStatus === 'paused' ? 'Series paused.' : 'Series resumed.')
+      toast.success(nextStatus === 'draft' ? 'Series paused.' : 'Series resumed.')
       router.refresh()
     } catch (e) {
       setCurrentStatus(currentStatus)
@@ -53,6 +53,7 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
       const res = await fetch(`/api/series/${id}/generate`, { method: 'POST' })
       if (!res.ok) throw new Error((await res.json()).error)
       toast.success('Video generation triggered!')
+      router.push('/dashboard/videos')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to trigger generation.')
     } finally {
