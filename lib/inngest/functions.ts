@@ -1,6 +1,7 @@
 import { inngest } from '@/lib/inngest/client'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Series } from '@/lib/types/series'
+import { triggerVideoRender, checkRenderStatus } from '@/lib/remotion-lambda'
 
 // ─── Hello World smoke-test ───────────────────────────────────────────────────
 /**
@@ -106,39 +107,68 @@ export const generateVideo = inngest.createFunction(
         })
       })
 
-      // ── Step 7: Save everything to database ──────────────────────────────────
-      await step.run('finalize-video', async () => {
+      // ── Step 7: Save assets to database ──────────────────────────────────
+      await step.run('save-assets', async () => {
         const supabase = createAdminClient()
         
         // 1. Update video record with final data
         const { error: videoError } = await supabase
           .from('videos')
           .update({
-            status: 'ready',
             script: script,
             audio_url: voice.audioUrl,
             captions: captions,
-            image_urls: images.images, // Now a JSONB array of {sceneId, url}
-            video_url: '', // Placeholder for future use
+            image_urls: images.images,
           })
           .eq('id', videoId)
 
         if (videoError) {
-          throw new Error(`Failed to finalize video: ${videoError.message}`)
+          throw new Error(`Failed to save assets: ${videoError.message}`)
         }
 
         // 2. Update series status
-        const { error: seriesError } = await supabase
+        await supabase
           .from('series')
           .update({ status: 'published' })
           .eq('id', seriesId)
 
-        if (seriesError) {
-          throw new Error(`Failed to update series status: ${seriesError.message}`)
-        }
-
         return { success: true }
       })
+
+      // ── Step 8: Trigger Remotion Video Render ───────────────────────────────
+      const renderData = await step.run('trigger-render', async () => {
+        // Calculate duration based on last word in captions
+        const lastWord = captions.words[captions.words.length - 1]
+        const durationInSeconds = lastWord ? lastWord.end + 1 : 30 // Add 1s padding
+        const fps = 30
+        const durationInFrames = Math.ceil(durationInSeconds * fps)
+
+        return await triggerVideoRender({
+          videoId: videoId,
+          inputProps: {
+            audioUrl: voice.audioUrl,
+            imageUrls: images.images,
+            captions: { words: captions.words },
+            script: script,
+            fps,
+            durationInFrames,
+          }
+        })
+      })
+
+      // ── Step 9: Wait for render completion (via Webhook) ───────────────────
+      const renderResult = await step.waitForEvent('wait-for-render', {
+        event: 'video/render.completed',
+        timeout: '10m',
+        match: 'data.videoId',
+      })
+
+      if (!renderResult || renderResult.data.status === 'failed') {
+        throw new Error('Video rendering failed or timed out.')
+      }
+
+      return { success: true }
+
     } catch (error: any) {
       // Set video status to failed
       await step.run('mark-as-failed', async () => {

@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { VideoCard, GeneratingVideoCard } from './video-card'
 import { Video as VideoIcon } from 'lucide-react'
-
-const POLL_INTERVAL = 4000
+import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   initialVideos: any[]
@@ -13,47 +12,40 @@ interface Props {
 
 export function VideosList({ initialVideos, userId: _userId }: Props) {
   const [videos, setVideos] = useState(initialVideos)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Sync state when server re-renders with fresh initialVideos
   useEffect(() => {
     setVideos(initialVideos)
   }, [initialVideos])
 
-  // Poll only while at least one video is still processing
+  // Real-time subscription to video updates
   useEffect(() => {
-    const hasProcessing = videos.some(v => v.status === 'processing')
-
-    if (!hasProcessing) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-      return
-    }
-
-    if (intervalRef.current) return // already polling
-
-    const fetchLatest = async () => {
-      try {
-        const res = await fetch('/api/videos')
-        if (!res.ok) return
-        setVideos(await res.json())
-      } catch (err) {
-        console.error('[Polling] Error:', err)
-      }
-    }
-
-    fetchLatest()
-    intervalRef.current = setInterval(fetchLatest, POLL_INTERVAL)
+    const supabase = createClient()
+    
+    const channel = supabase
+      .channel('video-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE)
+          schema: 'public',
+          table: 'videos'
+        },
+        (payload) => {
+          console.log('[Real-time] Video update received:', payload)
+          
+          // Refresh the list when a change happens
+          fetch('/api/videos')
+            .then(res => res.json())
+            .then(data => setVideos(data))
+        }
+      )
+      .subscribe()
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
+      supabase.removeChannel(channel)
     }
-  }, [videos])
+  }, [])
 
   if (videos.length === 0) {
     return (
