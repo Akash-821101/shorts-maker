@@ -1,87 +1,59 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { VideoCard, GeneratingVideoCard } from './video-card'
-import { createClient } from '@/lib/supabase/client'
 import { Video as VideoIcon } from 'lucide-react'
+
+const POLL_INTERVAL = 4000
 
 interface Props {
   initialVideos: any[]
   userId: string
 }
 
-export function VideosList({ initialVideos, userId }: Props) {
-  const router = useRouter()
+export function VideosList({ initialVideos, userId: _userId }: Props) {
   const [videos, setVideos] = useState(initialVideos)
-  const supabase = createClient()
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Sync state if initialVideos changes (e.g. via router.refresh)
+  // Sync state when server re-renders with fresh initialVideos
   useEffect(() => {
     setVideos(initialVideos)
   }, [initialVideos])
 
-  // Polling for updates
+  // Poll only while at least one video is still processing
   useEffect(() => {
+    const hasProcessing = videos.some(v => v.status === 'processing')
+
+    if (!hasProcessing) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      return
+    }
+
+    if (intervalRef.current) return // already polling
+
     const fetchLatest = async () => {
       try {
-        // 1. Fetch latest videos for the user
-        const { data: userSeries } = await supabase
-          .from('series')
-          .select('id')
-          .eq('user_id', userId)
-        
-        const seriesIds = userSeries?.map(s => s.id) || []
-        
-        if (seriesIds.length > 0) {
-          const { data: latestVideos, error } = await supabase
-            .from('videos')
-            .select('*, series(series_name)')
-            .in('series_id', seriesIds)
-            .order('created_at', { ascending: false })
-            // Cache busting: ensure we get fresh data from DB
-            .gt('created_at', '2024-01-01') 
-          
-          if (error) {
-            console.error('[Polling] Error fetching videos:', error)
-            return
-          }
-
-          if (latestVideos) {
-            console.log(`[Polling] Fetched ${latestVideos.length} videos. Statuses:`, latestVideos.map(v => v.status))
-            setVideos(latestVideos)
-          }
-        }
+        const res = await fetch('/api/videos')
+        if (!res.ok) return
+        setVideos(await res.json())
       } catch (err) {
-        console.error('[Polling] Unexpected error:', err)
+        console.error('[Polling] Error:', err)
       }
     }
 
-    // Call immediately on mount
     fetchLatest()
-
-    const interval = setInterval(fetchLatest, 3000) 
-
-    return () => clearInterval(interval)
-  }, [userId, supabase])
-
-  // Realtime updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('videos-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'videos' 
-      }, () => {
-        router.refresh()
-      })
-      .subscribe()
+    intervalRef.current = setInterval(fetchLatest, POLL_INTERVAL)
 
     return () => {
-      supabase.removeChannel(channel)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
-  }, [supabase, router])
+  }, [videos])
 
   if (videos.length === 0) {
     return (
@@ -101,11 +73,11 @@ export function VideosList({ initialVideos, userId }: Props) {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
       {videos.map((v) => (
         v.status === 'processing' || v.status === 'failed' ? (
-           <GeneratingVideoCard 
-             key={v.id} 
-             seriesName={v.series?.series_name || 'Generating...'} 
-             status={v.status} 
-           />
+          <GeneratingVideoCard
+            key={v.id}
+            seriesName={v.series?.series_name || 'Generating...'}
+            status={v.status}
+          />
         ) : (
           <VideoCard key={v.id} video={v} />
         )

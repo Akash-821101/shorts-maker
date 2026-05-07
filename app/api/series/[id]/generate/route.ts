@@ -32,13 +32,17 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   }
 
   // 1. Mark series as generating
-  await supabase
+  const { error: seriesError } = await supabase
     .from('series')
-    .update({ 
+    .update({
       status: 'generating',
-      updated_at: new Date().toISOString() 
+      updated_at: new Date().toISOString()
     })
     .eq('id', seriesId)
+
+  if (seriesError) {
+    return apiError('Failed to update series status.', 500)
+  }
 
   // 2. Create the video record immediately so it shows up in the UI instantly
   const { data: video, error: videoError } = await supabase

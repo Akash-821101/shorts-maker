@@ -48,7 +48,6 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
   }
 
   async function generateVideo() {
-    console.log(id, "id")
     setLoading('generate')
     try {
       const res = await fetch(`/api/series/${id}/generate`, { method: 'POST' })

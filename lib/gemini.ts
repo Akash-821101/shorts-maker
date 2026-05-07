@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY is not defined in environment variables");
+function getGenAI() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is not defined in environment variables");
+  return new GoogleGenerativeAI(key);
 }
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateVideoScript(params: {
   niche: string;
@@ -12,7 +12,7 @@ export async function generateVideoScript(params: {
   duration: string;
   style: string;
 }) {
-  const model = genAI.getGenerativeModel({ 
+  const model = getGenAI().getGenerativeModel({
     model: "gemini-flash-latest",
     generationConfig: {
       responseMimeType: "application/json",
@@ -61,8 +61,7 @@ export async function generateVideoScript(params: {
 
   try {
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return JSON.parse(response.text());
+    return JSON.parse(result.response.text());
   } catch (error) {
     console.error("Gemini Generation Error:", error);
     throw error;
