@@ -150,16 +150,16 @@ export async function renderVideo(params: RenderVideoParams): Promise<string> {
   const outputUrl = await pollUntilDone({ renderId, bucketName, functionName, region })
 
   // Download from S3 and re-host on Supabase so the URL stays consistent
-  const videoUrl = await downloadAndUploadToSupabase(outputUrl, seriesId, videoId)
+  //const videoUrl = await downloadAndUploadToSupabase(outputUrl, seriesId, videoId)
 
   // Persist the final video URL
   const supabase = createAdminClient()
   const { error } = await supabase
     .from('videos')
-    .update({ video_url: videoUrl })
+    .update({ video_url: outputUrl })
     .eq('id', videoId)
 
   if (error) throw new Error(`Failed to save video_url: ${error.message}`)
 
-  return videoUrl
+  return outputUrl
 }
