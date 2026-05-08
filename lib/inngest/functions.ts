@@ -1,6 +1,9 @@
 import { inngest } from '@/lib/inngest/client'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Series } from '@/lib/types/series'
+import { createClerkClient } from '@clerk/nextjs/server'
+import { sendResendEmail} from '@/lib/resend'
+import { getVideoReadyEmailTemplate } from '@/lib/email-templates'
 
 // ─── Generate Video ───────────────────────────────────────────────────────────
 /**
@@ -161,6 +164,58 @@ export const generateVideo = inngest.createFunction(
         }
 
         return { success: true }
+      })
+
+      // ── Step 10: Send email notification to user ─────────────────────────────
+      await step.run('send-notification', async () => {
+        const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
+        
+        // 1. Fetch user details from Clerk
+        const user = await clerk.users.getUser(series.user_id)
+        const email = user.emailAddresses[0]?.emailAddress
+
+        if (!email) {
+          console.warn(`[Inngest] No email found for user ${series.user_id}`)
+          return { skipped: true, reason: 'No email found' }
+        }
+
+        // 2. Prepare email content
+        const thumbnailUrl = images.images[0]?.url || ''
+        
+        // Fetch the final video URL from the database
+        const supabase = createAdminClient()
+        const { data } = await supabase
+          .from('videos')
+          .select('video_url')
+          .eq('id', videoId)
+          .single()
+          
+        const videoUrl = data?.video_url
+
+        if (!videoUrl) {
+          console.error(`[Inngest] Video URL not found for video ${videoId}`)
+          return { skipped: true, reason: 'Video URL not found' }
+        }
+
+        const emailHtml = getVideoReadyEmailTemplate({
+          seriesName: series.series_name,
+          thumbnailUrl,
+          videoUrl,
+          downloadUrl: videoUrl, // Using videoUrl for download as well for now
+        })
+
+        // 3. Send the email using Resend
+        const result = await sendResendEmail({
+          to: email,
+          subject: `Your video for "${series.series_name}" is ready!`,
+          body: emailHtml,
+        })
+
+        if (!result.success) {
+          throw new Error(`Failed to send email notification: ${result.error}`)
+        }
+
+        return { success: true, emailSentTo: email }
       })
     } catch (error: any) {
       // Set video status to failed
