@@ -1,6 +1,28 @@
-/**
- * Shared Email Templates
- */
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, (m) => {
+    switch (m) {
+      case '&': return '&amp;'
+      case '<': return '&lt;'
+      case '>': return '&gt;'
+      case '"': return '&quot;'
+      case "'": return '&#39;'
+      default: return m
+    }
+  })
+}
+
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return ['http:', 'https:'].includes(parsed.protocol)
+  } catch {
+    return false
+  }
+}
+
+function escapeAttr(url: string): string {
+  return isSafeUrl(url) ? escapeHtml(url) : '#'
+}
 
 export function getVideoReadyEmailTemplate(params: {
   seriesName: string
@@ -9,6 +31,11 @@ export function getVideoReadyEmailTemplate(params: {
   downloadUrl: string
 }) {
   const { seriesName, thumbnailUrl, videoUrl, downloadUrl } = params
+  
+  const escapedName = escapeHtml(seriesName)
+  const safeThumbnail = escapeAttr(thumbnailUrl)
+  const safeVideo = escapeAttr(videoUrl)
+  const safeDownload = escapeAttr(downloadUrl)
 
   return `
     <!DOCTYPE html>
@@ -110,15 +137,15 @@ export function getVideoReadyEmailTemplate(params: {
         </div>
         <div class="content">
           <p>Hi there,</p>
-          <p>Great news! Your video for <strong>${seriesName}</strong> has been generated and is ready for you to use.</p>
+          <p>Great news! Your video for <strong>${escapedName}</strong> has been generated and is ready for you to use.</p>
           
           <div class="video-card">
-            <img src="${thumbnailUrl}" alt="Video Thumbnail" class="thumbnail" />
-            <div class="series-name">${seriesName}</div>
+            <img src="${safeThumbnail}" alt="Video Thumbnail" class="thumbnail" />
+            <div class="series-name">${escapedName}</div>
             
             <div class="button-group">
-              <a href="${videoUrl}" class="btn btn-primary" target="_blank">View Video</a>
-              <a href="${downloadUrl}" class="btn btn-secondary" download target="_blank">Download</a>
+              <a href="${safeVideo}" class="btn btn-primary" target="_blank">View Video</a>
+              <a href="${safeDownload}" class="btn btn-secondary" download target="_blank">Download</a>
             </div>
           </div>
           

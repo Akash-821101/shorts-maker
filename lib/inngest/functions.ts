@@ -2,7 +2,8 @@ import { inngest } from '@/lib/inngest/client'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Series } from '@/lib/types/series'
 import { createClerkClient } from '@clerk/nextjs/server'
-import { sendResendEmail, getVideoReadyEmailTemplate } from '@/lib/resend'
+import { sendResendEmail} from '@/lib/resend'
+import { getVideoReadyEmailTemplate } from '@/lib/email-templates'
 
 // ─── Generate Video ───────────────────────────────────────────────────────────
 /**

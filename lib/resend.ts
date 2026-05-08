@@ -1,12 +1,10 @@
 import { Resend } from 'resend'
-import { getVideoReadyEmailTemplate } from './email-templates'
+
 
 /**
  * Resend Email Utility
  * Handles sending transactional emails using the Resend SDK.
  */
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface SendEmailParams {
   to: string
@@ -16,6 +14,15 @@ interface SendEmailParams {
 }
 
 export async function sendResendEmail({ to, subject, body, from }: SendEmailParams) {
+  const apiKey = process.env.RESEND_API_KEY
+
+  if (!apiKey) {
+    console.error('[Resend] Missing RESEND_API_KEY environment variable.')
+    return { success: false, error: 'Missing Resend API key' }
+  }
+
+  const resend = new Resend(apiKey)
+
   try {
     const { data, error } = await resend.emails.send({
       from: from || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
@@ -30,10 +37,9 @@ export async function sendResendEmail({ to, subject, body, from }: SendEmailPara
     }
 
     return { success: true, data }
-  } catch (err) {
-    console.error('[Resend] Network error sending email:', err)
+  } catch (err: any) {
+    console.error(`[Resend] Network error sending email: ${err.name} - ${err.message}`)
     return { success: false, error: 'Network Error' }
   }
 }
 
-export { getVideoReadyEmailTemplate }

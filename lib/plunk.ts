@@ -3,8 +3,6 @@
  * Handles sending transactional emails using the Plunk API.
  */
 
-import { getVideoReadyEmailTemplate } from './email-templates'
-
 interface SendEmailParams {
   to: string
   subject: string
@@ -42,15 +40,17 @@ export async function sendEmail({ to, subject, body, from, name }: SendEmailPara
     const data = await response.json()
 
     if (!response.ok || !data.success) {
-      console.error('[Plunk] Failed to send email:', data)
+      const status = response.status
+      const errorCode = data.error?.code || 'UNKNOWN_CODE'
+      const errorMessage = data.error?.message || 'Unknown error'
+      console.error(`[Plunk] Failed to send email: HTTP ${status} - ${errorCode}: ${errorMessage}`)
       return { success: false, error: data.error || 'API Error' }
     }
 
     return { success: true, data }
-  } catch (error) {
-    console.error('[Plunk] Network error sending email:', error)
+  } catch (error: any) {
+    console.error(`[Plunk] Network error sending email: ${error.name} - ${error.message}`)
     return { success: false, error: 'Network Error' }
   }
 }
 
-export { getVideoReadyEmailTemplate }
