@@ -11,6 +11,7 @@ interface Props {
     id: string
     created_at: string
     status: string
+    video_url?: string
     image_urls: { sceneId: number; url: string }[]
     audio_url: string
     captions: any
