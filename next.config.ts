@@ -11,11 +11,11 @@ const nextConfig: NextConfig = {
       // Remotion Lambda renders output to S3 before re-upload
       {
         protocol: "https",
-        hostname: "*.s3.*.amazonaws.com",
+        hostname: "remotionlambda-useast1-tljosgwdxa.s3.us-east-1.amazonaws.com",
       },
       {
         protocol: "https",
-        hostname: "*.s3.amazonaws.com",
+        hostname: "remotionlambda-useast1-tljosgwdxa.s3.amazonaws.com",
       },
     ],
   },
