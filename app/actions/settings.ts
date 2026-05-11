@@ -73,23 +73,23 @@ export async function deleteUserAccount() {
   const supabaseAdmin = createAdminClient();
   const client = await clerkClient();
 
-  // 1. Delete from Supabase (RLS should handle cascade if configured, but let's be explicit)
+  // 1. Delete from Clerk first to prevent orphaned authenticated users
+  try {
+    await client.users.deleteUser(user.id);
+  } catch (error) {
+    console.error("Error deleting user from Clerk:", error);
+    throw new Error("Failed to delete user account from authentication provider");
+  }
+
+  // 2. Delete from Supabase
   const { error: supabaseError } = await supabaseAdmin
     .from("users")
     .delete()
     .eq("user_id", user.id);
 
   if (supabaseError) {
-    console.error("Error deleting user from Supabase:", supabaseError);
-    throw new Error("Failed to delete user data from database");
-  }
-
-  // 2. Delete from Clerk
-  try {
-    await client.users.deleteUser(user.id);
-  } catch (error) {
-    console.error("Error deleting user from Clerk:", error);
-    throw new Error("Failed to delete user account");
+    // Log critical error but don't throw as Clerk account is already gone
+    console.error(`[CRITICAL ERROR] Failed to delete user ${user.id} from Supabase after Clerk deletion:`, supabaseError);
   }
 
   // 3. Redirect to home page
