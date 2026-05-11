@@ -1,8 +1,8 @@
 import { serve } from 'inngest/next'
 import { inngest } from '@/lib/inngest/client'
-import {generateVideo } from '@/lib/inngest/functions'
+import { generateVideo, seriesScheduler, seriesWorkflow } from '@/lib/inngest/functions'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [generateVideo],
+  functions: [generateVideo, seriesScheduler, seriesWorkflow],
 })
