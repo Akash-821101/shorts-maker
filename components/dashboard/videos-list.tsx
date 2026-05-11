@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { VideoCard, GeneratingVideoCard } from './video-card'
 import { Video as VideoIcon } from 'lucide-react'
 
-const POLL_INTERVAL = 4000
+const POLL_INTERVAL = 40000
 
 interface Props {
   initialVideos: any[]
