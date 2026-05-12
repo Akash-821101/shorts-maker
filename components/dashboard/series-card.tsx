@@ -50,7 +50,7 @@ interface Props {
 
 export function SeriesCard({ series }: Props) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const { loading, togglePause, deleteSeries, generateVideo } = useSeriesActions(series.id, series.status)
+  const { loading, togglePause, deleteSeries, generateVideo, testScheduleWorkflow } = useSeriesActions(series.id, series.status)
 
   const style = VISUAL_STYLES.find(s => s.id === series.style_id) ?? VISUAL_STYLES[0]
   const badge = STATUS_BADGE[series.status] ?? STATUS_BADGE.scheduled
@@ -93,6 +93,16 @@ export function SeriesCard({ series }: Props) {
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Zap className="w-3.5 h-3.5" />}
                 Generate Video
+              </button>
+              <button
+                onClick={testScheduleWorkflow}
+                disabled={loading === 'test'}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors disabled:opacity-60 cursor-pointer"
+              >
+                {loading === 'test'
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Play className="w-3.5 h-3.5" />}
+                Test Workflow
               </button>
               <Link
                 href={`/dashboard/series/${series.id}/videos`}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { SeriesStatus } from '@/lib/types/series'
 
-type LoadingState = 'pause' | 'delete' | 'generate' | null
+type LoadingState = 'pause' | 'delete' | 'generate' | 'test' | null
 
 export function useSeriesActions(id: string, status: SeriesStatus) {
   const router = useRouter()
@@ -61,5 +61,19 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
     }
   }
 
-  return { loading, togglePause, deleteSeries, generateVideo }
+  async function testScheduleWorkflow() {
+    setLoading('test')
+    try {
+      const res = await fetch(`/api/series/${id}/test-schedule`, { method: 'POST' })
+      if (!res.ok) throw new Error((await res.json()).error)
+      toast.success('Test workflow triggered! Video will generate and email will be sent shortly.')
+      router.push('/dashboard/videos')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to trigger test workflow.')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  return { loading, togglePause, deleteSeries, generateVideo, testScheduleWorkflow }
 }

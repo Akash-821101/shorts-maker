@@ -26,6 +26,11 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
+import { canCreateSeries } from "@/app/actions/limits";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const navItems = [
   { name: "Series", href: "/dashboard", icon: LayoutDashboard },
@@ -37,8 +42,28 @@ const navItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { toggleSidebar } = useSidebar();
   const { user } = useUser();
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [isCheckingLimit, setIsCheckingLimit] = useState(false);
+
+  const handleCreateNew = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsCheckingLimit(true);
+    try {
+      const { canCreate } = await canCreateSeries();
+      if (canCreate) {
+        router.push("/dashboard/create");
+      } else {
+        setShowUpgradeDialog(true);
+      }
+    } catch (error) {
+      toast.error("Failed to check plan limits");
+    } finally {
+      setIsCheckingLimit(false);
+    }
+  };
 
   return (
     <Sidebar>
@@ -60,14 +85,28 @@ export function DashboardSidebar() {
           </Button>
         </div>
         <div className="px-2 mt-4">
-          <Button className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300" size="lg" asChild>
-            <Link href="/dashboard/create">
+          <Button 
+            className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300" 
+            size="lg" 
+            onClick={handleCreateNew}
+            disabled={isCheckingLimit}
+          >
+            {isCheckingLimit ? (
+              <Zap className="w-5 h-5 animate-pulse" />
+            ) : (
               <Plus className="w-5 h-5" />
-              Create New Series
-            </Link>
+            )}
+            Create New Series
           </Button>
         </div>
       </SidebarHeader>
+
+      <UpgradeDialog 
+        isOpen={showUpgradeDialog} 
+        onOpenChange={setShowUpgradeDialog} 
+        title="Series Limit Reached"
+        description="You've reached the maximum number of series for your current plan. Upgrade to Unlimited for endless possibilities."
+      />
 
       <SidebarContent className="pt-4">
         <SidebarGroup>
