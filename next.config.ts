@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: [
+    'remotion',
+    '@remotion/renderer',
+    '@remotion/lambda',
+    '@remotion/cli',
+  ],
   images: {
     remotePatterns: [
       {

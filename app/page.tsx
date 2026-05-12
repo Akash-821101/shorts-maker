@@ -14,18 +14,16 @@ import {
   Video,
 } from "lucide-react";
 import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { BrandLogo } from "@/components/brand-logo";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans overflow-clip">
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
-            </div>
-            <Link href="/" className="font-bold text-xl tracking-tight cursor-pointer">Shorts-Maker</Link>
-          </div>
+          <Link href="/" className="cursor-pointer">
+            <BrandLogo size={32} />
+          </Link>
           <nav className="hidden md:flex gap-6">
             <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</Link>
             <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">How it Works</Link>
@@ -226,10 +224,9 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
-                <span className="font-bold text-xl">Shorts-Maker</span>
-              </div>
+              <Link href="/" className="mb-4 block">
+                <BrandLogo />
+              </Link>
               <p className="text-muted-foreground max-w-sm">
                 The AI-powered short video generator and auto-scheduler designed for modern creators.
               </p>

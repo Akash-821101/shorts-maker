@@ -4,19 +4,37 @@ import { VOICES } from "@/lib/data/voices";
 export async function generateTTS(params: {
   text: string;
   voiceId: string;
-  seriesId: string;
+  seriesId?: string;
+  fileName?: string;
 }) {
-  const { text, voiceId, seriesId } = params;
+  const { text, voiceId, seriesId, fileName: customFileName } = params;
   const voice = VOICES.find((v) => v.id === voiceId);
 
   if (!voice) {
     throw new Error(`Voice not found: ${voiceId}`);
   }
 
+  const supabase = createAdminClient();
+  const fileName = customFileName || `${seriesId}/${Date.now()}.mp3`;
+
+  // Check if file already exists in storage to save API costs
+  const { data: existingFiles } = await supabase.storage
+    .from("shorts")
+    .list(fileName.includes('/') ? fileName.split('/')[0] : "", {
+      search: fileName.includes('/') ? fileName.split('/').pop() : fileName,
+    });
+
+  if (existingFiles && existingFiles.length > 0) {
+    const { data: { publicUrl } } = supabase.storage
+      .from("shorts")
+      .getPublicUrl(fileName);
+    return { audioUrl: publicUrl };
+  }
+
   let audioBuffer: Buffer;
 
   if (voice.model === "Deepgram") {
-    audioBuffer = await generateDeepgramTTS(text, voice.id.replace("dg-", ""));
+    audioBuffer = await generateDeepgramTTS(text, voice.id.replace("aura-2-", "").replace("-en", ""));
   } else if (voice.model === "Fondalab") {
     audioBuffer = await generateFonadaTTS(text, voice.name, voice.languageCode);
   } else {
@@ -24,10 +42,7 @@ export async function generateTTS(params: {
   }
 
   // Upload to Supabase Storage
-  const supabase = createAdminClient();
-  const fileName = `${seriesId}/${Date.now()}.mp3`;
-
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from("shorts")
     .upload(fileName, audioBuffer, {
       contentType: "audio/mpeg",
@@ -71,18 +86,23 @@ async function generateDeepgramTTS(text: string, voiceName: string): Promise<Buf
   return Buffer.from(arrayBuffer);
 }
 
-async function generateFonadaTTS(text: string, voiceName: string, language: string): Promise<Buffer> {
+async function generateFonadaTTS(text: string, voiceName: string, languageCode: string): Promise<Buffer> {
   const apiKey = process.env.FONADA_API_KEY;
   if (!apiKey) throw new Error("FONADA_API_KEY is missing");
 
-  // Map language code to Fonada language names if necessary
+  // Map language code to Fonada allowed language names: "Hindi", "Tamil", "Telugu", "English"
   const langMap: Record<string, string> = {
     "hi-IN": "Hindi",
-    "en-US": "English",
-    "en-UK": "English",
     "ta-IN": "Tamil",
     "te-IN": "Telugu",
+    "en-US": "English",
+    "en-UK": "English",
+    "en-GB": "English",
   };
+
+  const fonadaLanguage = langMap[languageCode] || "English";
+
+  console.log(`Fonada TTS: Requesting voice=${voiceName}, language=${fonadaLanguage}`);
 
   const response = await fetch("https://api.fonada.ai/tts/generate-audio-large", {
     method: "POST",
@@ -93,13 +113,14 @@ async function generateFonadaTTS(text: string, voiceName: string, language: stri
     body: JSON.stringify({
       input: text,
       voice: voiceName,
-      language: langMap[language] || "English",
+      language: fonadaLanguage,
     }),
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Fonadalabs TTS Error: ${error}`);
+    const errorText = await response.text();
+    console.error("Fonada API Error:", errorText);
+    throw new Error(`Fonada TTS Error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();

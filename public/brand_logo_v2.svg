@@ -1,0 +1,12 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  {/* Play button with digital 'wave' bars */}
+  <path d="M35 25L80 50L35 75V25Z" fill="url(#g1)" />
+  <rect x="25" y="30" width="6" height="40" rx="3" fill="url(#g1)" fill-opacity="0.5" />
+  <rect x="15" y="40" width="6" height="20" rx="3" fill="url(#g1)" fill-opacity="0.2" />
+</svg>

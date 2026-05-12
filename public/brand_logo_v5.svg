@@ -1,0 +1,11 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  {/* The Monoline S: A single elegant stroke forming an S and a directional arrow */}
+  <path d="M25 30C25 21.7157 31.7157 15 40 15H60C68.2843 15 75 21.7157 75 30V40C75 48.2843 68.2843 55 60 55H40C31.7157 55 25 61.7157 25 70V80C25 88.2843 31.7157 95 40 95H60C68.2843 95 75 88.2843 75 80" stroke="url(#g)" stroke-width="10" stroke-linecap="round" />
+  <path d="M50 48L62 55L50 62V48Z" fill="url(#g)" />
+  <defs>
+    <linearGradient id="g" x1="25" y1="15" x2="75" y2="95">
+      <stop stop-color="#8B5CF6" />
+      <stop offset="1" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+</svg>

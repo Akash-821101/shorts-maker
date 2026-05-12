@@ -23,6 +23,7 @@ import {
   Zap,
   PanelLeftClose,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -69,25 +70,15 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-border/40 pb-4">
         <div className="flex items-center justify-between px-2 pt-2">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-lg">
-              <Zap className="w-5 h-5 text-primary" />
-            </div>
-            <Link href="/" className="font-bold text-lg tracking-tight cursor-pointer">Shorts Maker</Link>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="cursor-pointer text-muted-foreground hover:text-foreground"
-          >
-            <PanelLeftClose className="w-5 h-5" />
-          </Button>
+          <Link href="/" className="cursor-pointer">
+            <BrandLogo size={28} />
+          </Link>
+
         </div>
         <div className="px-2 mt-4">
-          <Button 
-            className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300" 
-            size="lg" 
+          <Button
+            className="w-full justify-start gap-2 shadow-md font-bold rounded-xl cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300"
+            size="lg"
             onClick={handleCreateNew}
             disabled={isCheckingLimit}
           >
@@ -101,9 +92,9 @@ export function DashboardSidebar() {
         </div>
       </SidebarHeader>
 
-      <UpgradeDialog 
-        isOpen={showUpgradeDialog} 
-        onOpenChange={setShowUpgradeDialog} 
+      <UpgradeDialog
+        isOpen={showUpgradeDialog}
+        onOpenChange={setShowUpgradeDialog}
         title="Series Limit Reached"
         description="You've reached the maximum number of series for your current plan. Upgrade to Unlimited for endless possibilities."
       />
