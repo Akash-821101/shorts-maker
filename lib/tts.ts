@@ -4,28 +4,42 @@ import { VOICES } from "@/lib/data/voices";
 export async function generateTTS(params: {
   text: string;
   voiceId: string;
-  seriesId: string;
+  seriesId?: string;
+  customFileName?: string;
 }) {
-  const { text, voiceId, seriesId } = params;
+  const { text, voiceId, seriesId, customFileName } = params;
   const voice = VOICES.find((v) => v.id === voiceId);
 
   if (!voice) {
     throw new Error(`Voice not found: ${voiceId}`);
   }
 
+   const supabase = createAdminClient();
+  const fileName = customFileName || `${seriesId}/${Date.now()}.mp3`;
+
+  // Check if file already exists in storage to save API costs
+  const { data: existingFiles } = await supabase.storage
+    .from("shorts")
+    .list(fileName.includes('/') ? fileName.split('/')[0] : "", {
+      search: fileName.includes('/') ? fileName.split('/').pop() : fileName,
+    });
+
+  if (existingFiles && existingFiles.length > 0) {
+    const { data: { publicUrl } } = supabase.storage
+      .from("shorts")
+      .getPublicUrl(fileName);
+    return { audioUrl: publicUrl };
+  }
+
   let audioBuffer: Buffer;
 
   if (voice.model === "Deepgram") {
-    audioBuffer = await generateDeepgramTTS(text, voice.id.replace("dg-", ""));
+    audioBuffer = await generateDeepgramTTS(text, voice.id);
   } else if (voice.model === "Fondalab") {
     audioBuffer = await generateFonadaTTS(text, voice.name, voice.languageCode);
   } else {
     throw new Error(`Unsupported TTS model: ${voice.model}`);
   }
-
-  // Upload to Supabase Storage
-  const supabase = createAdminClient();
-  const fileName = `${seriesId}/${Date.now()}.mp3`;
 
   const { data, error } = await supabase.storage
     .from("shorts")
@@ -46,14 +60,11 @@ export async function generateTTS(params: {
   return { audioUrl: publicUrl };
 }
 
-async function generateDeepgramTTS(text: string, voiceName: string): Promise<Buffer> {
+async function generateDeepgramTTS(text: string, voiceId: string): Promise<Buffer> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) throw new Error("DEEPGRAM_API_KEY is missing");
 
-  const model = `aura-${voiceName}-en`;
-  console.log(`Deepgram TTS: Requesting model ${model}`);
-
-  const response = await fetch(`https://api.deepgram.com/v1/speak?model=${model}`, {
+  const response = await fetch(`https://api.deepgram.com/v1/speak?model=${voiceId}`, {
     method: "POST",
     headers: {
       "Authorization": `Token ${apiKey}`,
