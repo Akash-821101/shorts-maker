@@ -15,7 +15,10 @@ export async function generateTTS(params: {
   }
 
    const supabase = createAdminClient();
-  const fileName = customFileName || `${seriesId}/${Date.now()}.mp3`;
+  if (!customFileName && !seriesId) {
+    throw new Error("Either customFileName or seriesId must be provided");
+  }
+  const fileName = customFileName ?? `${seriesId}/${Date.now()}.mp3`;
 
   // Check if file already exists in storage to save API costs
   const { data: existingFiles } = await supabase.storage
