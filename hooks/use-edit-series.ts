@@ -53,7 +53,7 @@ export function useEditSeries(initial: Series) {
   )
 
   // Navigation
-  const handleNext = () => setCurrentStep(s => Math.min(s + 1, 6))
+  const handleNext = () => setCurrentStep(s => Math.min(s + 1, 5))
   const handleBack = () => setCurrentStep(s => Math.max(s - 1, 1))
 
   // Step 1 handlers

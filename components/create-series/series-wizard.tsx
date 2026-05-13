@@ -30,10 +30,9 @@ export function SeriesWizard({ form, title, subtitle }: Props) {
 
       {form.currentStep === 1 && <StepNiche form={form} />}
       {form.currentStep === 2 && <StepLanguage form={form} />}
-      {form.currentStep === 3 && <StepMusic form={form} />}
-      {form.currentStep === 4 && <StepStyle form={form} />}
-      {form.currentStep === 5 && <StepCaptions form={form} />}
-      {form.currentStep === 6 && <StepReview form={form} />}
+      {form.currentStep === 3 && <StepStyle form={form} />}
+      {form.currentStep === 4 && <StepCaptions form={form} />}
+      {form.currentStep === 5 && <StepReview form={form} />}
     </div>
   )
 }

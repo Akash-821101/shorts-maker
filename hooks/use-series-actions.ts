@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { SeriesStatus } from '@/lib/types/series'
 
-type LoadingState = 'pause' | 'delete' | 'generate' | 'test' | null
+type LoadingState = 'pause' | 'generate' | 'test' | null
 
 export function useSeriesActions(id: string, status: SeriesStatus) {
   const router = useRouter()
@@ -33,19 +33,6 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
     }
   }
 
-  async function deleteSeries() {
-    setLoading('delete')
-    try {
-      const res = await fetch(`/api/series/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error((await res.json()).error)
-      toast.success('Series deleted.')
-      router.refresh()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed.')
-    } finally {
-      setLoading(null)
-    }
-  }
 
   async function generateVideo() {
     setLoading('generate')
@@ -75,5 +62,5 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
     }
   }
 
-  return { loading, togglePause, deleteSeries, generateVideo, testScheduleWorkflow }
+  return { loading, togglePause, generateVideo, testScheduleWorkflow }
 }
