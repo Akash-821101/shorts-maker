@@ -1,8 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import { Plus, Tv2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Tv2 } from 'lucide-react'
+import { CreateSeriesButton } from '@/components/shared/create-series-button'
 import { SeriesGrid } from '@/components/dashboard/series-grid'
 import type { Series } from '@/lib/types/series'
 
@@ -29,11 +28,7 @@ export default async function DashboardPage() {
               : `${items.length} series`}
           </p>
         </div>
-        <Button asChild className="cursor-pointer rounded-md">
-          <Link href="/dashboard/create">
-            <Plus className="w-4 h-4 mr-2" /> New Series
-          </Link>
-        </Button>
+        <CreateSeriesButton label="New Series" />
       </div>
 
       {items.length === 0 ? (
@@ -43,11 +38,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground mb-6">
             Create your first automated short-video series to get started.
           </p>
-          <Button asChild className="cursor-pointer">
-            <Link href="/dashboard/create">
-              <Plus className="w-4 h-4 mr-2" /> Create Series
-            </Link>
-          </Button>
+          <CreateSeriesButton label="Create Series" />
         </div>
       ) : (
         <SeriesGrid initialItems={items} />
