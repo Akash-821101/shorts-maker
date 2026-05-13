@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Plus, Tv2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SeriesCard } from '@/components/dashboard/series-card'
+import { SeriesGrid } from '@/components/dashboard/series-grid'
 import type { Series } from '@/lib/types/series'
 
 export default async function DashboardPage() {
@@ -50,11 +50,7 @@ export default async function DashboardPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {items.map(s => (
-            <SeriesCard key={s.id} series={s} />
-          ))}
-        </div>
+        <SeriesGrid initialItems={items} />
       )}
     </div>
   )

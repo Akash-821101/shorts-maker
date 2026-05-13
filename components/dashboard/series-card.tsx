@@ -25,16 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 const STATUS_BADGE: Record<SeriesStatus, { label: string; className: string }> = {
   scheduled: { label: 'Scheduled', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20' },
@@ -46,20 +36,16 @@ const STATUS_BADGE: Record<SeriesStatus, { label: string; className: string }> =
 
 interface Props {
   series: Series
+  onDelete?: (series: Series) => void
 }
 
-export function SeriesCard({ series }: Props) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const { loading, togglePause, deleteSeries, generateVideo, testScheduleWorkflow } = useSeriesActions(series.id, series.status)
+export function SeriesCard({ series, onDelete }: Props) {
+  const { loading, togglePause, generateVideo, testScheduleWorkflow } = useSeriesActions(series.id, series.status)
 
   const style = VISUAL_STYLES.find(s => s.id === series.style_id) ?? VISUAL_STYLES[0]
   const badge = STATUS_BADGE[series.status] ?? STATUS_BADGE.scheduled
   const isPaused = series.status === 'draft'
 
-  async function handleDelete() {
-    await deleteSeries()
-    setShowDeleteDialog(false)
-  }
 
   return (
     <>
@@ -153,7 +139,7 @@ export function SeriesCard({ series }: Props) {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
+                onClick={() => onDelete?.(series)}
                 className="rounded-lg text-destructive focus:text-destructive cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Delete
@@ -163,27 +149,6 @@ export function SeriesCard({ series }: Props) {
         </div>
 
       </div>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete series?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>{series.series_name}</strong> and all its scheduled jobs will be permanently removed. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading === 'delete'} className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={loading === 'delete'}
-              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {loading === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }

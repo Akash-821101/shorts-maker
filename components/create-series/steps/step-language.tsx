@@ -76,7 +76,7 @@ export function StepLanguage({ form }: Props) {
       <StepNavigation
         onBack={handleBack}
         onNext={handleNext}
-        nextLabel="Continue to Music"
+        nextLabel="Continue to Style"
         nextDisabled={!selectedVoice}
       />
     </div>

@@ -6,8 +6,7 @@ export interface Step {
 export const STEPS: Step[] = [
   { id: 1, name: 'Niche' },
   { id: 2, name: 'Language' },
-  { id: 3, name: 'Music' },
-  { id: 4, name: 'Style' },
-  { id: 5, name: 'Captions' },
-  { id: 6, name: 'Review' },
+  { id: 3, name: 'Style' },
+  { id: 4, name: 'Captions' },
+  { id: 5, name: 'Review' },
 ]
