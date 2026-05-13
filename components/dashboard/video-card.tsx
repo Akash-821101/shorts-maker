@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { formatDate } from '@/lib/utils'
 import { Play, Calendar, Film, X } from 'lucide-react'
 import { VideoPlayerModal } from '@/components/dashboard/video-player-modal'
+import { StatusBadge } from '@/components/shared/status-badge'
 
 interface Props {
   video: {
@@ -23,14 +24,11 @@ interface Props {
     series?: {
       series_name: string
     }
+    last_error: string | null
   }
 }
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  processing: { label: 'PROCESSING', className: 'bg-amber-500/90 text-white border-amber-400' },
-  ready: { label: 'READY', className: 'bg-emerald-500/90 text-white border-emerald-400' },
-  failed: { label: 'FAILED', className: 'bg-destructive/90 text-white border-destructive' },
-}
+
 
 export function VideoCard({ video }: Props) {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -38,7 +36,7 @@ export function VideoCard({ video }: Props) {
   const thumbnail = video.image_urls?.[0]?.url || '/placeholder-video.jpg'
   const title = video.script?.title || 'Untitled Video'
   const seriesName = video.series?.series_name || 'Individual Video'
-  const status = STATUS_CONFIG[video.status || 'ready'] || STATUS_CONFIG.ready
+  const status = video.status || 'ready'
 
   return (
     <>
@@ -56,11 +54,8 @@ export function VideoCard({ video }: Props) {
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
           
-          {/* Status Badge (Top Right) */}
           <div className="absolute top-3 right-3 z-10">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider border shadow-sm ${status.className}`}>
-              {status.label}
-            </span>
+            <StatusBadge type="video" status={video.status} errorMessage={video.last_error} />
           </div>
 
           {/* Play Overlay */}
@@ -84,7 +79,9 @@ export function VideoCard({ video }: Props) {
         {/* Info */}
         <div className="p-4">
           <h3 className="font-bold text-sm leading-tight truncate mb-1.5" title={title}>
-            {video.status === 'processing' ? 'Generating Content...' : title}
+            {['generating', 'processing', 'rendering', 'publishing'].includes(video.status) 
+              ? <span className="text-primary italic animate-pulse">{video.status.charAt(0).toUpperCase() + video.status.slice(1)}...</span>
+              : title}
           </h3>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
@@ -110,11 +107,8 @@ export function GeneratingVideoCard({ seriesName, status = 'processing' }: { ser
   return (
     <div className={`flex flex-col rounded-2xl border border-dashed overflow-hidden ${isFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5 animate-pulse'}`}>
       <div className={`relative w-full aspect-[9/16] flex flex-col items-center justify-center gap-3 ${isFailed ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-        {/* Status Badge */}
         <div className="absolute top-3 right-3">
-          <span className={`px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider border shadow-sm ${isFailed ? 'bg-destructive text-white border-destructive' : 'bg-amber-500/90 text-white border-amber-400'}`}>
-            {isFailed ? 'FAILED' : 'PROCESSING'}
-          </span>
+          <StatusBadge type="video" status={status} errorMessage={isFailed ? 'Generation failed. Please try again.' : null} />
         </div>
 
         <div className="relative">

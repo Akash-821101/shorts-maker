@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserButton } from "@clerk/nextjs";
+import { CreditIndicator } from "@/components/dashboard/credit-indicator";
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
                 <SidebarTrigger className="-ml-2 cursor-pointer md:hidden" />
               </div>
               <div className="flex items-center gap-4">
+                <CreditIndicator />
                 <UserButton />
               </div>
             </header>

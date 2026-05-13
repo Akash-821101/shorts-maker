@@ -4,5 +4,5 @@ import { generateVideo, seriesScheduler, seriesWorkflow } from '@/lib/inngest/fu
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [generateVideo, seriesScheduler, seriesWorkflow],
+  functions: [generateVideo],
 })

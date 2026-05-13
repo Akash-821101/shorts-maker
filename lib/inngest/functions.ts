@@ -47,6 +47,16 @@ export const generateVideo = inngest.createFunction(
       return data as Series
     })
 
+    // ── Step 2: Check & Deduct Credits ───────────────────────────────────────
+    await step.run('deduct-credits', async () => {
+      const { deductCreditsInternal } = await import('@/app/actions/credits')
+      await deductCreditsInternal(
+        series.user_id, 
+        1, 
+        `Video generation for series: ${series.series_name}`
+      )
+    })
+
     try {
       // ── Step 3: Generate video script using AI ───────────────────────────────
       const script = await step.run('generate-script', async () => {
@@ -160,7 +170,7 @@ export const generateVideo = inngest.createFunction(
 
         const { error: seriesError } = await supabase
           .from('series')
-          .update({ status: 'published' })
+          .update({ status: 'scheduled' })
           .eq('id', seriesId)
 
         if (seriesError) {
@@ -224,18 +234,58 @@ export const generateVideo = inngest.createFunction(
       })
     }
     } catch (error: any) {
-      // Set video status to failed
+      const errorMessage = error.message || 'Unknown error during generation'
+
+      // 1. Set video status to failed and save error
       await step.run('mark-as-failed', async () => {
         const supabase = createAdminClient()
         await supabase
           .from('videos')
-          .update({ status: 'failed' })
+          .update({ 
+            status: 'failed',
+            last_error: errorMessage 
+          })
           .eq('id', videoId)
+        
+        // Log the error on the series but keep it 'scheduled' (resilient)
+        // Unless it's an Auth error, then we might want to fail it.
+        const isAuthError = errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('permission')
         
         await supabase
           .from('series')
-          .update({ status: 'failed' })
+          .update({ 
+            status: isAuthError ? 'failed' : 'scheduled',
+            last_error: errorMessage
+          })
           .eq('id', seriesId)
+      })
+
+      // 2. Refund credits
+      await step.run('refund-credits', async () => {
+        const { createAdminClient } = await import('@/lib/supabase/server')
+        const supabase = createAdminClient()
+        
+        const { data: userData } = await supabase
+          .from('users')
+          .select('credits')
+          .eq('user_id', series.user_id)
+          .single()
+        
+        const currentCredits = userData?.credits || 0
+        
+        await supabase
+          .from('users')
+          .update({ credits: currentCredits + 1 })
+          .eq('user_id', series.user_id)
+          
+        await supabase
+          .from('credit_transactions')
+          .insert({
+            user_id: series.user_id,
+            amount: 1,
+            type: 'bonus',
+            description: `Refund for failed video generation: ${series.series_name}`
+          })
       })
       throw error
     }
@@ -276,34 +326,42 @@ export const seriesScheduler = inngest.createFunction(
     const triggers = []
 
     for (const series of seriesList as Series[]) {
-      const publishTime = new Date(series.publish_time)
+      const publishDate = new Date(series.publish_time)
       const now = new Date()
-      
-      // Calculate next daily publish time
-      const nextPublish = new Date(now)
-      nextPublish.setHours(publishTime.getUTCHours(), publishTime.getUTCMinutes(), 0, 0)
-      
-      if (nextPublish <= now) {
-        nextPublish.setDate(nextPublish.getDate() + 1)
-      }
 
-      const generationTime = new Date(nextPublish.getTime() - 2 * 60 * 60 * 1000)
+      // ── Start Date Protection ──
+      // If the user selected a future date (e.g., next week), don't start yet.
+      if (now < publishDate) {
+        continue
+      }
       
-      // If generation time is in the next hour, schedule the workflow
+      // ── Daily Cycle Logic ──
+      // Once the start date is reached, we use the TIME for daily recurring generation.
+      const todayPublish = new Date(now)
+      todayPublish.setHours(publishDate.getUTCHours(), publishDate.getUTCMinutes(), 0, 0)
+      
+      const generationTime = new Date(todayPublish.getTime() - 2 * 60 * 60 * 1000)
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
-      
-      if (generationTime >= now && generationTime < oneHourFromNow) {
-        // Check if we already have a video generating/ready for this series today
+
+      // ── Logic A: Normal Scheduling (Generation is coming up in the next hour) ──
+      const isUpcoming = generationTime >= now && generationTime < oneHourFromNow
+
+      // ── Logic B: Catch-up (Scheduled time for today has already passed) ──
+      const isPastDue = generationTime < now
+
+      if (isUpcoming || isPastDue) {
+        // Check if we already have a video generating/ready for this series recently
+        // We use a 20-hour window to ensure we only generate one video per day
         const { data: existingVideo } = await supabase
           .from('videos')
           .select('id')
           .eq('series_id', series.id)
-          .gte('created_at', new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString())
+          .gte('created_at', new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString())
           .limit(1)
 
         if (!existingVideo || existingVideo.length === 0) {
           triggers.push(
-            step.sendEvent(`trigger-workflow-${series.id}`, {
+            step.sendEvent(`trigger-workflow-${series.id}-${now.toDateString()}`, {
               name: 'series/schedule.workflow',
               data: { seriesId: series.id, isTest: false }
             })
@@ -370,11 +428,19 @@ export const seriesWorkflow = inngest.createFunction(
         .insert({
           series_id: seriesId,
           status: 'generating',
+          last_error: null
         })
         .select('id')
         .single()
       
       if (error) throw new Error(`Failed to create video record: ${error.message}`)
+
+      // Clear series error as well
+      await supabase
+        .from('series')
+        .update({ last_error: null })
+        .eq('id', seriesId)
+
       return data.id
     })
 
@@ -474,6 +540,12 @@ export const seriesWorkflow = inngest.createFunction(
         // TODO: Integrate TikTok API
         socialLogs.push('TikTok (Placeholder)')
       }
+
+      // Update video status to published
+      await supabase
+        .from('videos')
+        .update({ status: 'published' })
+        .eq('id', videoId)
 
       return { 
         success: true, 

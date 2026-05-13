@@ -72,7 +72,7 @@ export function CreateSeriesButton({
         isOpen={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
         title="Series Limit Reached"
-        description="You've reached the maximum number of series for your current plan. Upgrade to Unlimited for endless possibilities."
+        description="You've reached the maximum number of series for your current plan. Upgrade to Pro or Agency for more slots and premium features."
       />
     </>
   );

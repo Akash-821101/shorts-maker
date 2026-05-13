@@ -26,13 +26,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-const STATUS_BADGE: Record<SeriesStatus, { label: string; className: string }> = {
-  scheduled: { label: 'Scheduled', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20' },
-  draft: { label: 'draft', className: 'bg-green-500/15 text-green-500 border-green-500/20' },
-  generating: { label: 'generating', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
-  failed: { label: 'failed', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
-  published: { label: 'published', className: 'bg-amber-500/15 text-amber-600 border-amber-500/20' },
-}
+import { StatusBadge } from '@/components/shared/status-badge'
+import { SERIES_STATUS_CONFIG } from '@/lib/data/statuses'
 
 interface Props {
   series: Series
@@ -43,8 +38,7 @@ export function SeriesCard({ series, onDelete }: Props) {
   const { loading, togglePause, generateVideo, testScheduleWorkflow } = useSeriesActions(series.id, series.status)
 
   const style = VISUAL_STYLES.find(s => s.id === series.style_id) ?? VISUAL_STYLES[0]
-  const badge = STATUS_BADGE[series.status] ?? STATUS_BADGE.scheduled
-  const isPaused = series.status === 'draft'
+  const isPaused = series.status === 'paused' || series.status === 'draft'
 
 
   return (
@@ -60,11 +54,8 @@ export function SeriesCard({ series, onDelete }: Props) {
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
 
-          {/* Status badge */}
           <div className="absolute top-3 left-3">
-            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm bg-background/70 ${badge.className}`}>
-              {badge.label}
-            </span>
+            <StatusBadge type="series" status={series.status} errorMessage={series.last_error} />
           </div>
 
           {/* Hover action overlay — slides up from bottom */}
@@ -80,7 +71,7 @@ export function SeriesCard({ series, onDelete }: Props) {
                   : <Zap className="w-3.5 h-3.5" />}
                 Generate Video
               </button>
-              <button
+              {/* <button
                 onClick={testScheduleWorkflow}
                 disabled={loading === 'test'}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors disabled:opacity-60 cursor-pointer"
@@ -89,7 +80,7 @@ export function SeriesCard({ series, onDelete }: Props) {
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Play className="w-3.5 h-3.5" />}
                 Test Workflow
-              </button>
+              </button> */}
               <Link
                 href={`/dashboard/series/${series.id}/videos`}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors"
