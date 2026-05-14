@@ -1,4 +1,4 @@
-export type SeriesStatus = 'scheduled' | 'draft' | 'generating' | 'failed' | 'published'
+export type SeriesStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'failed'
 
 export interface Series {
   id: string
@@ -15,6 +15,7 @@ export interface Series {
   target_platforms: string[]
   publish_time: string
   status: SeriesStatus
+  last_error: string | null
   created_at: string
 }
 

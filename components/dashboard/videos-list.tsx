@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { VideoCard, GeneratingVideoCard } from './video-card'
 import { Video as VideoIcon } from 'lucide-react'
 
-const POLL_INTERVAL = 40000
+const POLL_INTERVAL = 8000 // 8 seconds: Good balance between speed and server load
 
 interface Props {
   initialVideos: any[]
@@ -15,16 +15,17 @@ export function VideosList({ initialVideos, userId: _userId }: Props) {
   const [videos, setVideos] = useState(initialVideos)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Sync state when server re-renders with fresh initialVideos
+  // Sync state when server re-renders
   useEffect(() => {
     setVideos(initialVideos)
   }, [initialVideos])
 
-  // Poll only while at least one video is still processing
+  // 🔄 Optimized Polling Heartbeat
   useEffect(() => {
-    const hasProcessing = videos.some(v => v.status === 'processing')
+    const IN_PROGRESS_STATUSES = ['generating', 'processing', 'rendering', 'publishing']
+    const hasActiveGeneration = videos.some(v => IN_PROGRESS_STATUSES.includes(v.status))
 
-    if (!hasProcessing) {
+    if (!hasActiveGeneration) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
@@ -32,19 +33,20 @@ export function VideosList({ initialVideos, userId: _userId }: Props) {
       return
     }
 
-    if (intervalRef.current) return // already polling
+    if (intervalRef.current) return // Already polling
 
     const fetchLatest = async () => {
       try {
         const res = await fetch('/api/videos')
         if (!res.ok) return
-        setVideos(await res.json())
+        const data = await res.json()
+        setVideos(data)
       } catch (err) {
         console.error('[Polling] Error:', err)
       }
     }
 
-    fetchLatest()
+    fetchLatest() // Initial fetch
     intervalRef.current = setInterval(fetchLatest, POLL_INTERVAL)
 
     return () => {
@@ -71,17 +73,23 @@ export function VideosList({ initialVideos, userId: _userId }: Props) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-      {videos.map((v) => (
-        v.status === 'processing' || v.status === 'failed' ? (
+      {videos.map((v) => {
+        // Show the real video card if it's finished OR if we already have the script/assets
+        const hasContent = v.script?.title && (v.image_urls?.length > 0 || v.video_url)
+        const isTerminal = v.status === 'ready' || v.status === 'published' || v.status === 'failed'
+        
+        const shouldShowFullCard = isTerminal || hasContent
+
+        return shouldShowFullCard ? (
+          <VideoCard key={v.id} video={v} />
+        ) : (
           <GeneratingVideoCard
             key={v.id}
             seriesName={v.series?.series_name || 'Generating...'}
             status={v.status}
           />
-        ) : (
-          <VideoCard key={v.id} video={v} />
         )
-      ))}
+      })}
     </div>
   )
 }

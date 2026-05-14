@@ -12,7 +12,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
-import { useUser } from "@clerk/nextjs";
+import { useUser, Show, useAuth } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Video,
@@ -22,11 +22,13 @@ import {
   Plus,
   Zap,
   PanelLeftClose,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CreateSeriesButton } from "@/components/shared/create-series-button";
+import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { name: "Series", href: "/dashboard", icon: LayoutDashboard },
@@ -40,6 +42,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
   const { user } = useUser();
+  const { has, isLoaded } = useAuth();
 
   return (
     <Sidebar>
@@ -101,7 +104,7 @@ export function DashboardSidebar() {
               Upgrade Plan
             </Link>
           </Button>
-          <div className="flex items-center gap-3 px-2 py-2 bg-accent/50 hover:bg-accent/80 transition-colors cursor-pointer rounded-xl">
+          <div className="flex items-center gap-3 px-2 py-2 bg-accent/50 hover:bg-accent/80 transition-colors cursor-pointer rounded-xl overflow-hidden">
             <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
               {user?.imageUrl ? (
                 <img src={user?.imageUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -109,8 +112,15 @@ export function DashboardSidebar() {
                 <span className="text-xs font-bold text-primary">{user?.firstName?.charAt(0) || "U"}</span>
               )}
             </div>
-            <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-medium leading-none truncate">{user?.fullName || "My Profile"}</span>
+            <div className="flex flex-col overflow-hidden flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium leading-none truncate">{user?.fullName || "My Profile"}</span>
+                <Show when={isLoaded && (has as any)({ entitlement: "pro" })}>
+                  <Badge className="bg-primary/20 text-primary border-primary/20 px-1 py-0 h-4 text-[8px] font-black uppercase tracking-tighter">
+                    Pro
+                  </Badge>
+                </Show>
+              </div>
               <span className="text-xs text-muted-foreground mt-1 truncate">{user?.primaryEmailAddress?.emailAddress || "Manage Account"}</span>
             </div>
           </div>
@@ -119,3 +129,5 @@ export function DashboardSidebar() {
     </Sidebar>
   );
 }
+
+

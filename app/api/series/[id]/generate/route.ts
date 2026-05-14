@@ -31,15 +31,16 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     return apiError('Series not found.', 404)
   }
 
-  // 1. Mark series as generating
+  // 1. Ensure series is marked as 'scheduled' (active)
   const { error: seriesError } = await supabase
     .from('series')
     .update({
-      status: 'generating',
+      status: 'scheduled',
+      last_error: null,
       updated_at: new Date().toISOString()
     })
     .eq('id', seriesId)
-
+  
   if (seriesError) {
     return apiError('Failed to update series status.', 500)
   }
@@ -49,7 +50,8 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     .from('videos')
     .insert({
       series_id: seriesId,
-      status: 'processing',
+      status: 'generating', // Initial state for videos
+      last_error: null,
       script: {}, 
       audio_url: '', 
       captions: {}, 
