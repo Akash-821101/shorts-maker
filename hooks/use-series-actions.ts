@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { SeriesStatus } from '@/lib/types/series'
+import { getUserCredits } from '@/app/actions/credits'
 
 type LoadingState = 'pause' | 'generate' | 'test' | null
 
@@ -11,11 +12,16 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
   const router = useRouter()
   const [loading, setLoading] = useState<LoadingState>(null)
   const [currentStatus, setCurrentStatus] = useState<SeriesStatus>(status)
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false)
 
   async function togglePause() {
-    const nextStatus: SeriesStatus = currentStatus === 'draft' ? 'scheduled' : 'draft'
+    const isPaused = currentStatus === 'draft' || currentStatus === 'paused'
+    const nextStatus: SeriesStatus = isPaused ? 'scheduled' : 'paused'
+    
+    const prevStatus = currentStatus
     setCurrentStatus(nextStatus)
     setLoading('pause')
+
     try {
       const res = await fetch(`/api/series/${id}`, {
         method: 'PATCH',
@@ -23,10 +29,9 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
         body: JSON.stringify({ status: nextStatus }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      toast.success(nextStatus === 'draft' ? 'Series paused.' : 'Series resumed.')
-      router.refresh()
+      toast.success(nextStatus === 'paused' ? 'Series paused.' : 'Series resumed.')
     } catch (e) {
-      setCurrentStatus(currentStatus)
+      setCurrentStatus(prevStatus)
       toast.error(e instanceof Error ? e.message : 'Failed.')
     } finally {
       setLoading(null)
@@ -37,6 +42,12 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
   async function generateVideo() {
     setLoading('generate')
     try {
+      const credits = await getUserCredits()
+      if (credits <= 0) {
+        setIsUpgradeOpen(true)
+        return
+      }
+
       const res = await fetch(`/api/series/${id}/generate`, { method: 'POST' })
       if (!res.ok) throw new Error((await res.json()).error)
       toast.success('Video generation triggered!')
@@ -62,5 +73,5 @@ export function useSeriesActions(id: string, status: SeriesStatus) {
     }
   }
 
-  return { loading, togglePause, generateVideo, testScheduleWorkflow }
+  return { loading, currentStatus, isUpgradeOpen, setIsUpgradeOpen, togglePause, generateVideo, testScheduleWorkflow }
 }

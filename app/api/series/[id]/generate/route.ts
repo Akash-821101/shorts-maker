@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/api/middleware'
 import { apiError } from '@/lib/api/respond'
 import { revalidatePath } from 'next/cache'
+import { getCreditsByUserId } from '@/app/actions/credits'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -29,6 +30,12 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 
   if (error || !data) {
     return apiError('Series not found.', 404)
+  }
+
+  // Check if user has credits
+  const credits = await getCreditsByUserId(auth.userId)
+  if (credits <= 0) {
+    return apiError('Insufficient credits.', 403)
   }
 
   // 1. Ensure series is marked as 'scheduled' (active)
