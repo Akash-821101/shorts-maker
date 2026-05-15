@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { simulateConnect, disconnectSocialAccount, getYouTubeAuthUrl } from "@/app/actions/settings";
 import { checkPlatformAccess } from "@/app/actions/platform-access";
-import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
+import { UpgradeDialog } from "@/components/shared/upgrade-dialog";
 
 interface SocialConnectButtonProps {
   platform: "youtube" | "instagram" | "tiktok";

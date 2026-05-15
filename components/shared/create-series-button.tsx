@@ -6,7 +6,7 @@ import { Plus, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { canCreateSeries } from "@/app/actions/limits";
 import { toast } from "sonner";
-import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
+import { UpgradeDialog } from "@/components/shared/upgrade-dialog";
 import { cn } from "@/lib/utils";
 
 interface CreateSeriesButtonProps extends React.ComponentProps<typeof Button> {

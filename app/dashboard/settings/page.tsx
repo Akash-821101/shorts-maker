@@ -84,7 +84,7 @@ export default async function SettingsPage() {
                     <Sparkles className="w-3 h-3" />
                     {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
                   </div>
-                  {plan !== 'unlimited' && (
+                  {plan !== 'pro' && (
                     <Link href="/dashboard/billing">
                       <div className="px-4 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold uppercase tracking-wider text-amber-600 hover:bg-amber-500/20 transition-colors cursor-pointer">
                         Get Pro

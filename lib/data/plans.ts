@@ -31,7 +31,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       yearly: 0,
     },
     credits: 3,
-    seriesSlots: 1,
+    seriesSlots: 2,
     voiceLevel: "Standard",
     cta: "Start for free",
     color: "hsl(var(--muted-foreground))",

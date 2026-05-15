@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { VideoCard, GeneratingVideoCard } from './video-card'
 import { Video as VideoIcon } from 'lucide-react'
 
-const POLL_INTERVAL = 8000 // 8 seconds: Good balance between speed and server load
+const POLL_INTERVAL = 80000 // 8 seconds: Good balance between speed and server load
 
 interface Props {
   initialVideos: any[]
@@ -77,7 +77,7 @@ export function VideosList({ initialVideos, userId: _userId }: Props) {
         // Show the real video card if it's finished OR if we already have the script/assets
         const hasContent = v.script?.title && (v.image_urls?.length > 0 || v.video_url)
         const isTerminal = v.status === 'ready' || v.status === 'published' || v.status === 'failed'
-        
+
         const shouldShowFullCard = isTerminal || hasContent
 
         return shouldShowFullCard ? (

@@ -1,6 +1,7 @@
 import { inngest } from '@/lib/inngest/client'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Series } from '@/lib/types/series'
+import type { VideoStatus } from '@/lib/types/video'
 import { createClerkClient } from '@clerk/nextjs/server'
 import { sendResendEmail} from '@/lib/resend'
 import { getVideoReadyEmailTemplate } from '@/lib/email-templates'
@@ -155,8 +156,8 @@ export const generateVideo = inngest.createFunction(
         return { success: true }
       })
 
-      // ── Step 9: Mark video and series as published ───────────────────────────
-      await step.run('mark-published', async () => {
+      // ── Step 9: Mark video Ready ───────────────────────────
+      await step.run('mark-ready', async () => {
         const supabase = createAdminClient()
 
         const { error: videoError } = await supabase
@@ -239,54 +240,67 @@ export const generateVideo = inngest.createFunction(
       // 1. Set video status to failed and save error
       await step.run('mark-as-failed', async () => {
         const supabase = createAdminClient()
+        
+        let friendlyMessage = errorMessage
+        if (errorMessage.toLowerCase().includes('insufficient credits')) {
+          friendlyMessage = 'Insufficient credits'
+        } else if (errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('permission')) {
+          friendlyMessage = 'Account connection issue'
+        } else if (errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('network')) {
+          friendlyMessage = 'Network error. Retrying...'
+        } else if (errorMessage.length > 50) {
+          friendlyMessage = 'Generation failed. Please try again.'
+        }
+
         await supabase
           .from('videos')
           .update({ 
             status: 'failed',
-            last_error: errorMessage 
+            last_error: friendlyMessage 
           })
           .eq('id', videoId)
         
         // Log the error on the series but keep it 'scheduled' (resilient)
-        // Unless it's an Auth error, then we might want to fail it.
         const isAuthError = errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('permission')
         
         await supabase
           .from('series')
           .update({ 
             status: isAuthError ? 'failed' : 'scheduled',
-            last_error: errorMessage
+            last_error: friendlyMessage
           })
           .eq('id', seriesId)
       })
 
-      // 2. Refund credits
-      await step.run('refund-credits', async () => {
-        const { createAdminClient } = await import('@/lib/supabase/server')
-        const supabase = createAdminClient()
-        
-        const { data: userData } = await supabase
-          .from('users')
-          .select('credits')
-          .eq('user_id', series.user_id)
-          .single()
-        
-        const currentCredits = userData?.credits || 0
-        
-        await supabase
-          .from('users')
-          .update({ credits: currentCredits + 1 })
-          .eq('user_id', series.user_id)
+      // 2. Refund credits (Only if deduction actually happened and it wasn't an "Insufficient credits" error)
+      if (errorMessage !== 'Insufficient credits') {
+        await step.run('refund-credits', async () => {
+          const { createAdminClient } = await import('@/lib/supabase/server')
+          const supabase = createAdminClient()
           
-        await supabase
-          .from('credit_transactions')
-          .insert({
-            user_id: series.user_id,
-            amount: 1,
-            type: 'bonus',
-            description: `Refund for failed video generation: ${series.series_name}`
-          })
-      })
+          const { data: userData } = await supabase
+            .from('users')
+            .select('credits')
+            .eq('user_id', series.user_id)
+            .single()
+          
+          const currentCredits = userData?.credits || 0
+          
+          await supabase
+            .from('users')
+            .update({ credits: currentCredits + 1 })
+            .eq('user_id', series.user_id)
+            
+          await supabase
+            .from('credit_transactions')
+            .insert({
+              user_id: series.user_id,
+              amount: 1,
+              type: 'bonus',
+              description: `Refund for failed video generation: ${series.series_name}`
+            })
+        })
+      }
       throw error
     }
 
@@ -350,6 +364,23 @@ export const seriesScheduler = inngest.createFunction(
       const isPastDue = generationTime < now
 
       if (isUpcoming || isPastDue) {
+        // Fetch user credits to ensure they have enough to generate
+        const { getCreditsByUserId } = await import('@/app/actions/credits')
+        const credits = await getCreditsByUserId(series.user_id)
+
+        if (credits <= 0) {
+          console.log(`[Scheduler] Skipping series ${series.id} due to insufficient credits for user ${series.user_id}`)
+          
+          await supabase
+            .from('series')
+            .update({ 
+              last_error: 'Insufficient credits for scheduled generation. Please upgrade your plan.' 
+            })
+            .eq('id', series.id)
+
+          continue
+        }
+
         // Check if we already have a video generating/ready for this series recently
         // We use a 20-hour window to ensure we only generate one video per day
         const { data: existingVideo } = await supabase
@@ -460,7 +491,7 @@ export const seriesWorkflow = inngest.createFunction(
     }
 
     // 6. Final publishing and notification
-    await step.run('publish-and-notify', async () => {
+    const result = await step.run('publish-and-notify', async () => {
       const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
       const user = await clerk.users.getUser(series.user_id)
       const email = user.emailAddresses[0]?.emailAddress
@@ -478,21 +509,13 @@ export const seriesWorkflow = inngest.createFunction(
         throw new Error('Video not ready or URL missing at publish time')
       }
 
-      // Send Email
-      const emailHtml = getVideoReadyEmailTemplate({
-        seriesName: series.series_name,
-        thumbnailUrl: video.image_urls?.[0]?.url || '',
-        videoUrl: video.video_url,
-        downloadUrl: video.video_url,
-      })
+      // Update video status to publishing
+      await supabase
+        .from('videos')
+        .update({ status: 'publishing' })
+        .eq('id', videoId)
 
-      const emailResult = await sendResendEmail({
-        to: email,
-        subject: `Your video for "${series.series_name}" is being published!`,
-        body: emailHtml,
-      })
-
-      // Placeholder Social Media Publishing
+      // Social Media Publishing
       const platforms = series.target_platforms || []
       const socialLogs = []
 
@@ -530,30 +553,108 @@ export const seriesWorkflow = inngest.createFunction(
           socialLogs.push(`YouTube (Error: ${error.message})`)
         }
       }
+
       if (platforms.includes('instagram')) {
         console.log(`[Instagram] Placeholder: Publishing video ${videoId} to Instagram account`)
-        // TODO: Integrate Instagram Graph API
         socialLogs.push('Instagram (Placeholder)')
       }
+
       if (platforms.includes('tiktok')) {
         console.log(`[TikTok] Placeholder: Publishing video ${videoId} to TikTok account`)
-        // TODO: Integrate TikTok API
         socialLogs.push('TikTok (Placeholder)')
       }
 
-      // Update video status to published
+      // Analyze results
+      const hasFailures = socialLogs.some(log => log.includes('Error:') || log.includes('Failed:'))
+      const hasSuccess = socialLogs.some(log => 
+        !log.includes('Error:') && 
+        !log.includes('Failed:') && 
+        !log.includes('Skipped:') && 
+        !log.includes('Placeholder') &&
+        log.includes('Video ID:') // Specifically looking for success markers
+      )
+      
+      const requestedPlatforms = platforms.length > 0
+      
+      // Determine final video status
+      let finalStatus: VideoStatus = 'published'
+      let errorSummary = null
+
+      if (requestedPlatforms) {
+        if (!hasSuccess) {
+          finalStatus = 'ready' // Revert to ready if none of the requested platforms succeeded
+        }
+        
+        if (hasFailures) {
+          const rawErrors = socialLogs.filter(l => l.includes('Error:') || l.includes('Failed:'))
+          
+          // Map to user-friendly messages
+          const friendlyErrors = rawErrors.map(err => {
+            const lowErr = err.toLowerCase()
+            if (lowErr.includes('youtube data api') || lowErr.includes('disabled')) return 'YouTube API disabled'
+            if (lowErr.includes('refresh_token') || lowErr.includes('token') || lowErr.includes('auth')) return 'Social account disconnected'
+            if (lowErr.includes('permission')) return 'Missing permissions'
+            return 'Publishing failed'
+          })
+          
+          // Deduplicate and join
+          errorSummary = Array.from(new Set(friendlyErrors)).join('; ')
+        }
+      }
+
+      // Update video status
       await supabase
         .from('videos')
-        .update({ status: 'published' })
+        .update({ 
+          status: finalStatus,
+          last_error: errorSummary
+        })
         .eq('id', videoId)
+        
+      // Also update series with error if any, to show on the dashboard
+      if (errorSummary) {
+        await supabase
+          .from('series')
+          .update({ last_error: `Publishing failed: ${errorSummary}` })
+          .eq('id', seriesId)
+      } else {
+        // Clear previous errors if successful
+        await supabase
+          .from('series')
+          .update({ last_error: null })
+          .eq('id', seriesId)
+      }
+
+      // Send Email (After publishing attempt)
+      const emailHtml = getVideoReadyEmailTemplate({
+        seriesName: series.series_name,
+        thumbnailUrl: video.image_urls?.[0]?.url || '',
+        videoUrl: video.video_url,
+        downloadUrl: video.video_url,
+      })
+
+      const subject = hasSuccess 
+        ? `Your video for "${series.series_name}" has been published!`
+        : (requestedPlatforms && hasFailures)
+          ? `Action Required: Publishing failed for "${series.series_name}"`
+          : `Your video for "${series.series_name}" is ready!`
+
+      const emailResult = await sendResendEmail({
+        to: email,
+        subject: subject,
+        body: emailHtml,
+      })
 
       return { 
-        success: true, 
+        success: requestedPlatforms ? hasSuccess : true, 
         emailSent: emailResult.success, 
-        platformsPublished: socialLogs 
+        platformsPublished: socialLogs,
+        error: errorSummary,
+        finalStatus
       }
     })
 
-    return { status: 'published', seriesId, videoId }
+    const status = ('finalStatus' in result) ? (result as any).finalStatus : 'skipped'
+    return { status: status || 'published', seriesId, videoId }
   }
 )
