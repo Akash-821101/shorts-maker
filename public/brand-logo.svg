@@ -1,0 +1,35 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#9333EA" />
+    </linearGradient>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+      <feOffset dx="0" dy="1" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  {/* Smartphone / Shorts Frame */}
+  <rect x="30" y="15" width="40" height="70" rx="10" stroke="url(#brand-gradient)" stroke-width="4" fill="white" />
+  
+  {/* Play Button Circle */}
+  <circle cx="50" cy="50" r="12" fill="url(#brand-gradient)" />
+  <path d="M47 44V56L56 50L47 44Z" fill="white" />
+
+  {/* AI Sparkles */}
+  <g transform="translate(62, 12)" filter="url(#soft-glow)">
+    <path d="M5 0L6.12257 3.87743L10 5L6.12257 6.12257L5 10L3.87743 6.12257L0 5L3.87743 3.87743L5 0Z" fill="#F59E0B" />
+    <path d="M14 6L14.6735 8.32646L17 9L14.6735 9.67354L14 12L13.3265 9.67354L11 9L13.3265 8.32646L14 6Z" fill="#F59E0B" fill-opacity="0.7" />
+  </g>
+  
+  {/* Notch for the phone look */}
+  <rect x="42" y="15" width="16" height="4" rx="2" fill="url(#brand-gradient)" />
+</svg>

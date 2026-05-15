@@ -3,6 +3,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   PlayCircle,
   Calendar,
   MonitorPlay,
@@ -12,20 +19,17 @@ import {
   Sparkles,
   Zap,
   Video,
+  CheckCircle2,
 } from "lucide-react";
 import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { Logo } from "@/components/shared/logo";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans overflow-clip">
       {/* Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
-            </div>
-            <Link href="/" className="font-bold text-xl tracking-tight cursor-pointer">Shorts-Maker</Link>
-          </div>
+          <Logo size="sm" />
           <nav className="hidden md:flex gap-6">
             <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</Link>
             <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">How it Works</Link>
@@ -87,10 +91,30 @@ export default function Home() {
                   </Link>
                 </Button>
               </Show>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg font-medium w-full sm:w-auto bg-background/50 backdrop-blur-md border-border/50 cursor-pointer">
-                View Demo
-                <PlayCircle className="ml-2 w-5 h-5" />
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg font-medium w-full sm:w-auto bg-background/50 backdrop-blur-md border-border/50 cursor-pointer">
+                    View Demo
+                    <PlayCircle className="ml-2 w-5 h-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black border-border/50">
+                  <DialogHeader className="sr-only">
+                    <DialogTitle>Shorts Maker Demo Video</DialogTitle>
+                  </DialogHeader>
+                  <div className="relative w-full pt-[56.25%]">
+                    {/* Placeholder YouTube Video - Replace the src URL with your actual demo video later */}
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
+                      title="Product Demo"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Platform Icons */}
@@ -195,6 +219,94 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-24 bg-secondary/30 relative overflow-hidden">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Start for free, then scale your audience with our premium plans.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {/* Free Plan */}
+              <Card className="bg-background/60 backdrop-blur-xl border-border/50 shadow-lg rounded-2xl flex flex-col">
+                <CardContent className="p-8 flex-1 flex flex-col">
+                  <h3 className="text-2xl font-bold mb-2">Free Trial</h3>
+                  <p className="text-muted-foreground mb-6">Experience the power of AI video creation.</p>
+                  <div className="text-4xl font-extrabold mb-8">$0<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 3 Video Credits</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 1 Active Series</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 720p Rendering</li>
+                  </ul>
+                  <Show when="signed-out">
+                    <SignUpButton mode="modal">
+                      <Button variant="outline" className="w-full rounded-xl cursor-pointer">Start for free</Button>
+                    </SignUpButton>
+                  </Show>
+                  <Show when="signed-in">
+                    <Button variant="outline" asChild className="w-full rounded-xl cursor-pointer">
+                      <Link href="/dashboard">Go to Dashboard</Link>
+                    </Button>
+                  </Show>
+                </CardContent>
+              </Card>
+
+              {/* Starter Plan */}
+              <Card className="bg-background/60 backdrop-blur-xl border-border/50 shadow-lg rounded-2xl flex flex-col">
+                <CardContent className="p-8 flex-1 flex flex-col">
+                  <h3 className="text-2xl font-bold mb-2">Starter</h3>
+                  <p className="text-muted-foreground mb-6">Ideal for hobbyists and new creators.</p>
+                  <div className="text-4xl font-extrabold mb-8">$19<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 15 Videos per month</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 3 Active Series</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> 1080p Full HD</li>
+                  </ul>
+                  <Show when="signed-out">
+                    <SignUpButton mode="modal">
+                      <Button variant="outline" className="w-full rounded-xl cursor-pointer border-primary/50 text-primary hover:bg-primary/5">Upgrade to Starter</Button>
+                    </SignUpButton>
+                  </Show>
+                  <Show when="signed-in">
+                    <Button variant="outline" asChild className="w-full rounded-xl cursor-pointer border-primary/50 text-primary hover:bg-primary/5">
+                      <Link href="/dashboard/billing">View Plans</Link>
+                    </Button>
+                  </Show>
+                </CardContent>
+              </Card>
+
+              {/* Pro Plan */}
+              <Card className="bg-primary/5 backdrop-blur-xl border-primary/20 shadow-2xl shadow-primary/10 rounded-2xl flex flex-col relative mt-4 md:mt-0 overflow-visible">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider py-1 px-4 rounded-full shadow-md z-10 whitespace-nowrap">Most Popular</div>
+                <CardContent className="p-8 flex-1 flex flex-col">
+                  <h3 className="text-2xl font-bold mb-2 text-primary">Pro</h3>
+                  <p className="text-muted-foreground mb-6">The sweet spot for serious growth.</p>
+                  <div className="text-4xl font-extrabold mb-8">$49<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+                  <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 60 Videos per month</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 10 Active Series</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Priority Rendering</li>
+                    <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> All Social Connectors</li>
+                  </ul>
+                  <Show when="signed-out">
+                    <SignUpButton mode="modal">
+                      <Button className="w-full rounded-xl cursor-pointer">Get Pro Now</Button>
+                    </SignUpButton>
+                  </Show>
+                  <Show when="signed-in">
+                    <Button asChild className="w-full rounded-xl cursor-pointer">
+                      <Link href="/dashboard/billing">Upgrade to Pro</Link>
+                    </Button>
+                  </Show>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
           {/* Abstract pattern */}
@@ -226,10 +338,7 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <PlayCircle className="text-primary w-6 h-6 fill-primary/20" />
-                <span className="font-bold text-xl">Shorts-Maker</span>
-              </div>
+              <Logo size="lg" className="mb-4" />
               <p className="text-muted-foreground max-w-sm">
                 The AI-powered short video generator and auto-scheduler designed for modern creators.
               </p>
@@ -254,8 +363,8 @@ export default function Home() {
           <div className="pt-8 border-t border-border/40 text-center text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center gap-4">
             <p>© 2026 Shorts-Maker. All rights reserved.</p>
             <div className="flex gap-4">
-              <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link href="/terms-and-conditions" className="hover:text-primary transition-colors">Terms & Conditions</Link>
             </div>
           </div>
         </div>

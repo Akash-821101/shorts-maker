@@ -29,17 +29,15 @@ export async function getCreditsByUserId(userId: string) {
 export async function deductCreditsInternal(userId: string, amount: number, description: string) {
   const supabaseAdmin = createAdminClient();
   
-  const currentCredits = await getCreditsByUserId(userId);
-  if (currentCredits < amount) {
-    throw new Error("Insufficient credits");
-  }
-
   const { error: updateError } = await supabaseAdmin
-    .from("users")
-    .update({ credits: currentCredits - amount })
-    .eq("user_id", userId);
+    .rpc('decrement_credits', { user_id_param: userId, deduct_amount: amount });
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    if (updateError.message.includes('Insufficient credits') || updateError.details?.includes('Insufficient credits')) {
+      throw new Error("Insufficient credits");
+    }
+    throw updateError;
+  }
 
   const { error: logError } = await supabaseAdmin
     .from("credit_transactions")
@@ -84,12 +82,9 @@ export async function addCredits(amount: number, description: string) {
     if (!user) throw new Error("Unauthorized");
   
     const supabaseAdmin = createAdminClient();
-    const currentCredits = await getCreditsByUserId(user.id);
   
     const { error: updateError } = await supabaseAdmin
-      .from("users")
-      .update({ credits: currentCredits + amount })
-      .eq("user_id", user.id);
+      .rpc('increment_credits', { user_id_param: user.id, add_amount: amount });
   
     if (updateError) throw updateError;
   

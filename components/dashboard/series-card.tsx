@@ -63,7 +63,7 @@ export function SeriesCard({ series, onDelete }: Props) {
           {/* Hover action overlay — slides up from bottom */}
           <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
             <div className="bg-gradient-to-t from-black/95 via-black/75 to-transparent px-3 pt-14 pb-3 flex flex-col gap-2">
-              {/* <button
+              <button
                 onClick={generateVideo}
                 disabled={loading === 'generate'}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold py-2.5 hover:bg-primary/90 transition-colors disabled:opacity-60 cursor-pointer"
@@ -72,8 +72,8 @@ export function SeriesCard({ series, onDelete }: Props) {
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Zap className="w-3.5 h-3.5" />}
                 Generate Video
-              </button> */}
-              <button
+              </button>
+              {/* <button
                 onClick={testScheduleWorkflow}
                 disabled={loading === 'test'}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors disabled:opacity-60 cursor-pointer"
@@ -82,7 +82,7 @@ export function SeriesCard({ series, onDelete }: Props) {
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Play className="w-3.5 h-3.5" />}
                 Test Workflow
-              </button>
+              </button> */}
               <Link
                 href={`/dashboard/series/${series.id}/videos`}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold py-2.5 hover:bg-white/20 transition-colors"

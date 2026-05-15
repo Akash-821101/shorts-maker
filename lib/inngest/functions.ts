@@ -278,18 +278,7 @@ export const generateVideo = inngest.createFunction(
           const { createAdminClient } = await import('@/lib/supabase/server')
           const supabase = createAdminClient()
           
-          const { data: userData } = await supabase
-            .from('users')
-            .select('credits')
-            .eq('user_id', series.user_id)
-            .single()
-          
-          const currentCredits = userData?.credits || 0
-          
-          await supabase
-            .from('users')
-            .update({ credits: currentCredits + 1 })
-            .eq('user_id', series.user_id)
+          await supabase.rpc('increment_credits', { user_id_param: series.user_id, add_amount: 1 })
             
           await supabase
             .from('credit_transactions')
@@ -326,47 +315,58 @@ export const seriesScheduler = inngest.createFunction(
   async ({ step }) => {
     const supabase = createAdminClient()
     
-    // Fetch all active series
-    const { data: seriesList, error } = await supabase
+    // Fetch all active series along with their user's credits
+    const { data: seriesListRaw, error } = await supabase
       .from('series')
-      .select('*')
+      .select('*, users(credits)')
       .eq('status', 'scheduled')
 
-    if (error || !seriesList) {
+    if (error || !seriesListRaw) {
       return { error: error?.message || 'No active series found' }
     }
+    
+    const seriesList = seriesListRaw as any[]
 
-    const scheduledCount = 0
+    const now = new Date()
+    const seriesIds = seriesList.map(s => s.id)
+    
+    // Bulk fetch recent videos to avoid N+1 queries
+    let recentVideoSeriesIds = new Set<string>()
+    if (seriesIds.length > 0) {
+      const { data: existingVideos } = await supabase
+        .from('videos')
+        .select('series_id')
+        .in('series_id', seriesIds)
+        .gte('created_at', new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString())
+      
+      if (existingVideos) {
+        recentVideoSeriesIds = new Set(existingVideos.map(v => v.series_id))
+      }
+    }
+
     const triggers = []
 
-    for (const series of seriesList as Series[]) {
+    for (const series of seriesList) {
       const publishDate = new Date(series.publish_time)
-      const now = new Date()
 
       // ── Start Date Protection ──
-      // If the user selected a future date (e.g., next week), don't start yet.
       if (now < publishDate) {
         continue
       }
       
       // ── Daily Cycle Logic ──
-      // Once the start date is reached, we use the TIME for daily recurring generation.
       const todayPublish = new Date(now)
       todayPublish.setHours(publishDate.getUTCHours(), publishDate.getUTCMinutes(), 0, 0)
       
       const generationTime = new Date(todayPublish.getTime() - 2 * 60 * 60 * 1000)
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
 
-      // ── Logic A: Normal Scheduling (Generation is coming up in the next hour) ──
       const isUpcoming = generationTime >= now && generationTime < oneHourFromNow
-
-      // ── Logic B: Catch-up (Scheduled time for today has already passed) ──
       const isPastDue = generationTime < now
 
       if (isUpcoming || isPastDue) {
-        // Fetch user credits to ensure they have enough to generate
-        const { getCreditsByUserId } = await import('@/app/actions/credits')
-        const credits = await getCreditsByUserId(series.user_id)
+        // Use credits from the joined relation
+        const credits = series.users?.credits || 0
 
         if (credits <= 0) {
           console.log(`[Scheduler] Skipping series ${series.id} due to insufficient credits for user ${series.user_id}`)
@@ -381,16 +381,8 @@ export const seriesScheduler = inngest.createFunction(
           continue
         }
 
-        // Check if we already have a video generating/ready for this series recently
-        // We use a 20-hour window to ensure we only generate one video per day
-        const { data: existingVideo } = await supabase
-          .from('videos')
-          .select('id')
-          .eq('series_id', series.id)
-          .gte('created_at', new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString())
-          .limit(1)
-
-        if (!existingVideo || existingVideo.length === 0) {
+        // Check if a video was already generated in the last 20 hours
+        if (!recentVideoSeriesIds.has(series.id)) {
           triggers.push(
             step.sendEvent(`trigger-workflow-${series.id}-${now.toDateString()}`, {
               name: 'series/schedule.workflow',
@@ -490,18 +482,15 @@ export const seriesWorkflow = inngest.createFunction(
       await step.sleep('test-delay', '10s')
     }
 
-    // 6. Final publishing and notification
-    const result = await step.run('publish-and-notify', async () => {
+    // 6. Get Publish Data
+    const { email, video } = await step.run('get-publish-data', async () => {
       const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
       const user = await clerk.users.getUser(series.user_id)
       const email = user.emailAddresses[0]?.emailAddress
 
-      if (!email) return { skipped: true, reason: 'No email found' }
-
-      // Fetch the generated video
       const { data: video } = await supabase
         .from('videos')
-        .select('*')
+        .select('video_url, image_urls')
         .eq('id', videoId)
         .single()
 
@@ -509,152 +498,122 @@ export const seriesWorkflow = inngest.createFunction(
         throw new Error('Video not ready or URL missing at publish time')
       }
 
-      // Update video status to publishing
       await supabase
         .from('videos')
         .update({ status: 'publishing' })
         .eq('id', videoId)
 
-      // Social Media Publishing
-      const platforms = series.target_platforms || []
-      const socialLogs = []
+      return { email, video }
+    })
 
-      if (platforms.includes('youtube')) {
-        try {
-          const { getYouTubeConnection, refreshYouTubeToken, uploadToYouTube } = await import('@/lib/youtube')
-          const connection = await getYouTubeConnection(series.user_id)
-          
-          if (connection) {
-            let token = connection.access_token
-            const isExpired = new Date(connection.expires_at) <= new Date()
-            
-            if (isExpired && connection.refresh_token) {
-              token = await refreshYouTubeToken(connection.id, connection.refresh_token)
-            }
-            
-            if (token) {
-              const youtubeVideoId = await uploadToYouTube({
-                accessToken: token,
-                videoUrl: video.video_url,
-                title: series.series_name,
-                description: `Created with Shorts Maker AI. Series: ${series.series_name}`,
-              })
-              
-              console.log(`[YouTube] Successfully published video ${videoId} to YouTube: ${youtubeVideoId}`)
-              socialLogs.push(`YouTube (Video ID: ${youtubeVideoId})`)
-            } else {
-              socialLogs.push('YouTube (Failed: No valid token)')
-            }
-          } else {
-            socialLogs.push('YouTube (Skipped: Not connected)')
-          }
-        } catch (error: any) {
-          console.error(`[YouTube] Error publishing video ${videoId}:`, error)
-          socialLogs.push(`YouTube (Error: ${error.message})`)
+    const platforms = series.target_platforms || []
+    const socialLogs: string[] = []
+
+    // 7. Upload to YouTube
+    if (platforms.includes('youtube')) {
+      const ytResult = await step.run('upload-to-youtube', async () => {
+        const { getYouTubeConnection, refreshYouTubeToken, uploadToYouTube } = await import('@/lib/youtube')
+        const connection = await getYouTubeConnection(series.user_id)
+        
+        if (!connection) return 'YouTube (Skipped: Not connected)'
+        
+        let token = connection.access_token
+        const isExpired = new Date(connection.expires_at) <= new Date()
+        
+        if (isExpired && connection.refresh_token) {
+          token = await refreshYouTubeToken(connection.id, connection.refresh_token)
         }
-      }
+        
+        if (!token) return 'YouTube (Failed: No valid token)'
+        
+        try {
+          const youtubeVideoId = await uploadToYouTube({
+            accessToken: token,
+            videoUrl: video.video_url,
+            title: series.series_name,
+            description: `Created with Shorts Maker AI. Series: ${series.series_name}`,
+          })
+          return `YouTube (Video ID: ${youtubeVideoId})`
+        } catch (error: any) {
+          return `YouTube (Error: ${error.message})`
+        }
+      })
+      socialLogs.push(ytResult)
+    }
 
-      if (platforms.includes('instagram')) {
-        console.log(`[Instagram] Placeholder: Publishing video ${videoId} to Instagram account`)
-        socialLogs.push('Instagram (Placeholder)')
-      }
+    if (platforms.includes('instagram')) {
+      socialLogs.push('Instagram (Placeholder)')
+    }
 
-      if (platforms.includes('tiktok')) {
-        console.log(`[TikTok] Placeholder: Publishing video ${videoId} to TikTok account`)
-        socialLogs.push('TikTok (Placeholder)')
-      }
+    if (platforms.includes('tiktok')) {
+      socialLogs.push('TikTok (Placeholder)')
+    }
 
-      // Analyze results
-      const hasFailures = socialLogs.some(log => log.includes('Error:') || log.includes('Failed:'))
-      const hasSuccess = socialLogs.some(log => 
-        !log.includes('Error:') && 
-        !log.includes('Failed:') && 
-        !log.includes('Skipped:') && 
-        !log.includes('Placeholder') &&
-        log.includes('Video ID:') // Specifically looking for success markers
-      )
+    // 8. Finalize Publish Status
+    const { finalStatus, hasSuccess, hasFailures, errorSummary } = await step.run('finalize-publish-status', async () => {
+      const hasFailures = socialLogs.some(log => log.includes('Error:') || log.includes('Failed:') || log.includes('Skipped:'))
+      const hasSuccess = socialLogs.some(log => log.includes('Video ID:'))
       
       const requestedPlatforms = platforms.length > 0
       
-      // Determine final video status
       let finalStatus: VideoStatus = 'published'
       let errorSummary = null
 
       if (requestedPlatforms) {
-        if (!hasSuccess) {
-          finalStatus = 'ready' // Revert to ready if none of the requested platforms succeeded
-        }
+        if (!hasSuccess) finalStatus = 'ready'
         
         if (hasFailures) {
-          const rawErrors = socialLogs.filter(l => l.includes('Error:') || l.includes('Failed:'))
-          
-          // Map to user-friendly messages
+          const rawErrors = socialLogs.filter(l => l.includes('Error:') || l.includes('Failed:') || l.includes('Skipped:'))
           const friendlyErrors = rawErrors.map(err => {
             const lowErr = err.toLowerCase()
             if (lowErr.includes('youtube data api') || lowErr.includes('disabled')) return 'YouTube API disabled'
             if (lowErr.includes('refresh_token') || lowErr.includes('token') || lowErr.includes('auth')) return 'Social account disconnected'
             if (lowErr.includes('permission')) return 'Missing permissions'
+            if (lowErr.includes('skipped: not connected')) return 'YouTube disconnected'
             return 'Publishing failed'
           })
-          
-          // Deduplicate and join
           errorSummary = Array.from(new Set(friendlyErrors)).join('; ')
         }
       }
 
-      // Update video status
-      await supabase
-        .from('videos')
-        .update({ 
-          status: finalStatus,
-          last_error: errorSummary
-        })
-        .eq('id', videoId)
+      await supabase.from('videos').update({ status: finalStatus, last_error: errorSummary }).eq('id', videoId)
         
-      // Also update series with error if any, to show on the dashboard
       if (errorSummary) {
-        await supabase
-          .from('series')
-          .update({ last_error: `Publishing failed: ${errorSummary}` })
-          .eq('id', seriesId)
+        await supabase.from('series').update({ last_error: `Publishing failed: ${errorSummary}` }).eq('id', seriesId)
       } else {
-        // Clear previous errors if successful
-        await supabase
-          .from('series')
-          .update({ last_error: null })
-          .eq('id', seriesId)
+        await supabase.from('series').update({ last_error: null }).eq('id', seriesId)
       }
 
-      // Send Email (After publishing attempt)
-      const emailHtml = getVideoReadyEmailTemplate({
-        seriesName: series.series_name,
-        thumbnailUrl: video.image_urls?.[0]?.url || '',
-        videoUrl: video.video_url,
-        downloadUrl: video.video_url,
-      })
-
-      const subject = hasSuccess 
-        ? `Your video for "${series.series_name}" has been published!`
-        : (requestedPlatforms && hasFailures)
-          ? `Action Required: Publishing failed for "${series.series_name}"`
-          : `Your video for "${series.series_name}" is ready!`
-
-      const emailResult = await sendResendEmail({
-        to: email,
-        subject: subject,
-        body: emailHtml,
-      })
-
-      return { 
-        success: requestedPlatforms ? hasSuccess : true, 
-        emailSent: emailResult.success, 
-        platformsPublished: socialLogs,
-        error: errorSummary,
-        finalStatus
-      }
+      return { finalStatus, hasSuccess, hasFailures, errorSummary }
     })
 
-    const status = ('finalStatus' in result) ? (result as any).finalStatus : 'skipped'
-    return { status: status || 'published', seriesId, videoId }
+    // 9. Send Publish Email
+    if (email) {
+      await step.run('send-publish-email', async () => {
+        const emailHtml = getVideoReadyEmailTemplate({
+          seriesName: series.series_name,
+          thumbnailUrl: video.image_urls?.[0]?.url || '',
+          videoUrl: video.video_url,
+          downloadUrl: video.video_url,
+        })
+
+        const requestedPlatforms = platforms.length > 0
+        const subject = hasSuccess 
+          ? `Your video for "${series.series_name}" has been published!`
+          : (requestedPlatforms && hasFailures)
+            ? `Action Required: Publishing failed for "${series.series_name}"`
+            : `Your video for "${series.series_name}" is ready!`
+
+        const emailResult = await sendResendEmail({
+          to: email,
+          subject: subject,
+          body: emailHtml,
+        })
+        
+        return emailResult
+      })
+    }
+
+    return { status: finalStatus || 'published', seriesId, videoId }
   }
 )
