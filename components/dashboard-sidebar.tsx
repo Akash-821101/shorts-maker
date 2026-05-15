@@ -58,15 +58,12 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-border/40 pb-4">
         <div className="flex items-center justify-between px-2 pt-2">
-          <Logo size="md" />
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="cursor-pointer text-muted-foreground hover:text-foreground"
-          >
-            <PanelLeftClose className="w-5 h-5" />
-          </Button> */}
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 p-1.5 rounded-lg">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+            <Link href="/" className="font-bold text-lg tracking-tight cursor-pointer">Shorts Maker</Link>
+          </div>
         </div>
         <div className="px-2 mt-4">
           <CreateSeriesButton
