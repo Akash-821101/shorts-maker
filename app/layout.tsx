@@ -25,6 +25,14 @@ export const metadata: Metadata = {
     description: "Automate your viral success. AI short video generator and auto-scheduler for YouTube Shorts, Instagram Reels, TikTok, and Email marketing.",
     type: "website",
   },
+  icons: {
+    icon: [
+      { url: "/brand-logo.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/brand-logo.svg", type: "image/svg+xml" },
+    ],
+  },
 
 };
 

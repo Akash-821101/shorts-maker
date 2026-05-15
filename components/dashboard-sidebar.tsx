@@ -12,23 +12,32 @@ import {
   SidebarGroup,
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
-import { useUser, Show, useAuth } from "@clerk/nextjs";
+import { useUser, Show, useAuth, useClerk } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Video,
   BookOpen,
   CreditCard,
   Settings,
-  Plus,
   Zap,
   PanelLeftClose,
-  ShieldCheck,
+  ChevronsUpDown,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CreateSeriesButton } from "@/components/shared/create-series-button";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Logo } from "@/components/shared/logo";
 
 const navItems = [
   { name: "Series", href: "/dashboard", icon: LayoutDashboard },
@@ -43,6 +52,7 @@ export function DashboardSidebar() {
   const { toggleSidebar } = useSidebar();
   const { user } = useUser();
   const { has, isLoaded } = useAuth();
+  const { openUserProfile, signOut } = useClerk();
 
   return (
     <Sidebar>
@@ -96,30 +106,57 @@ export function DashboardSidebar() {
               Upgrade Plan
             </Link>
           </Button>
-          <div className="flex items-center gap-3 px-2 py-2 bg-accent/50 hover:bg-accent/80 transition-colors cursor-pointer rounded-xl overflow-hidden">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
-              {user?.imageUrl ? (
-                <img src={user?.imageUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xs font-bold text-primary">{user?.firstName?.charAt(0) || "U"}</span>
-              )}
-            </div>
-            <div className="flex flex-col overflow-hidden flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium leading-none truncate">{user?.fullName || "My Profile"}</span>
-                <Show when={isLoaded && (has as any)({ entitlement: "pro" })}>
-                  <Badge className="bg-primary/20 text-primary border-primary/20 px-1 py-0 h-4 text-[8px] font-black uppercase tracking-tighter">
-                    Pro
-                  </Badge>
-                </Show>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-3 px-2 py-2 bg-accent/50 hover:bg-accent/80 transition-colors cursor-pointer rounded-xl overflow-hidden">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
+                  {user?.imageUrl ? (
+                    <img src={user?.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-primary">{user?.firstName?.charAt(0) || "U"}</span>
+                  )}
+                </div>
+                <div className="flex flex-col overflow-hidden flex-1">
+                  <span className="text-sm font-medium leading-none truncate">{user?.fullName || "My Profile"}</span>
+                  <span className="text-xs text-muted-foreground mt-1 truncate">
+                    {isLoaded ? ((has as any)({ entitlement: "pro" }) ? "Pro Plan" : "Free Plan") : "Loading..."}
+                  </span>
+                </div>
+                <ChevronsUpDown className="w-4 h-4 text-muted-foreground ml-auto shrink-0" />
               </div>
-              <span className="text-xs text-muted-foreground mt-1 truncate">{user?.primaryEmailAddress?.emailAddress || "Manage Account"}</span>
-            </div>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 rounded-xl" align="end" side="right" sideOffset={12}>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.fullName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.primaryEmailAddress?.emailAddress}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer rounded-lg">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Manage Account</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg">
+                  <Link href="/dashboard/billing">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>Billing</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer rounded-lg text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </SidebarFooter>
     </Sidebar>
   );
 }
-
-

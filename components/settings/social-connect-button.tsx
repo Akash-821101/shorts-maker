@@ -121,8 +121,12 @@ export function SocialConnectButton({ platform, isConnected, username }: SocialC
     <>
     <Button
       onClick={handleConnect}
-      disabled={isLoading}
-      className={`group relative overflow-hidden w-full h-16 justify-start gap-4 rounded-lg text-white font-bold shadow-xl transition-all duration-300 cursor-pointer active:scale-[0.98] hover:shadow-2xl hover:-translate-y-0.5 ${config.color}`}
+      disabled={isLoading || platform === "instagram" || platform === "tiktok"}
+      className={`group relative overflow-hidden w-full h-16 justify-start gap-4 rounded-lg text-white font-bold shadow-xl transition-all duration-300 ${
+        platform === "instagram" || platform === "tiktok"
+          ? "opacity-60 cursor-not-allowed hover:-translate-y-0 grayscale-[50%]"
+          : "cursor-pointer active:scale-[0.98] hover:shadow-2xl hover:-translate-y-0.5"
+      } ${config.color}`}
     >
       <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       {isLoading ? (
@@ -133,9 +137,18 @@ export function SocialConnectButton({ platform, isConnected, username }: SocialC
             <config.icon className="w-6 h-6" />
           </div>
           <span className="text-lg tracking-tight">Connect {config.name}</span>
-          <div className="ml-auto pr-2 opacity-0 group-hover:opacity-50 transition-all duration-300">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
+          
+          {platform === "instagram" || platform === "tiktok" ? (
+            <div className="ml-auto">
+              <span className="text-[10px] bg-black/40 border border-white/10 px-3 py-1 rounded-full uppercase tracking-widest text-white/90 font-black shadow-inner">
+                Coming Soon
+              </span>
+            </div>
+          ) : (
+            <div className="ml-auto pr-2 opacity-0 group-hover:opacity-50 transition-all duration-300">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+          )}
         </>
       )}
     </Button>
