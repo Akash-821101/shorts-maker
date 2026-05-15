@@ -54,20 +54,12 @@ export function DashboardSidebar() {
             </div>
             <Link href="/" className="font-bold text-lg tracking-tight cursor-pointer">Shorts Maker</Link>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="cursor-pointer text-muted-foreground hover:text-foreground"
-          >
-            <PanelLeftClose className="w-5 h-5" />
-          </Button>
         </div>
         <div className="px-2 mt-4">
-          <CreateSeriesButton 
+          <CreateSeriesButton
             label="Create New Series"
-            className="w-full justify-start" 
-            size="lg" 
+            className="w-full justify-start"
+            size="lg"
           />
         </div>
       </SidebarHeader>
