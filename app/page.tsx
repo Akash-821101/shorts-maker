@@ -91,7 +91,7 @@ export default function Home() {
                   </Link>
                 </Button>
               </Show>
-              <Dialog>
+              {/* <Dialog>
                 <DialogTrigger asChild>
                   <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg font-medium w-full sm:w-auto bg-background/50 backdrop-blur-md border-border/50 cursor-pointer">
                     View Demo
@@ -103,10 +103,10 @@ export default function Home() {
                     <DialogTitle>Shorts Maker Demo Video</DialogTitle>
                   </DialogHeader>
                   <div className="relative w-full pt-[56.25%]">
-                    {/* Placeholder YouTube Video - Replace the src URL with your actual demo video later */}
+                  
                     <iframe
                       className="absolute top-0 left-0 w-full h-full"
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
+                      src=""
                       title="Product Demo"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -114,7 +114,7 @@ export default function Home() {
                     ></iframe>
                   </div>
                 </DialogContent>
-              </Dialog>
+              </Dialog> */}
             </div>
 
             {/* Platform Icons */}
