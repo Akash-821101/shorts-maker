@@ -33,7 +33,9 @@ export const metadata: Metadata = {
       { url: "/brand-logo.svg", type: "image/svg+xml" },
     ],
   },
-
+  verification: {
+    google: "lVIefy4LjXJ-HL8qPgVzelw49Idan0W5QDTH9fpxAA0",
+  },
 };
 
 export default function RootLayout({
