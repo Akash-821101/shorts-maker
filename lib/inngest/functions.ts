@@ -63,20 +63,14 @@ export const generateVideo = inngest.createFunction(
       const script = await step.run('generate-script', async () => {
         const { generateVideoScript } = await import('@/lib/gemini')
         const { VISUAL_STYLES } = await import('@/lib/data/styles')
-        const { VOICES, LANGUAGES } = await import('@/lib/data/voices')
         
         const style = VISUAL_STYLES.find(s => s.id === series.style_id)?.title || series.style_id
         
-        const voice = VOICES.find(v => v.id === series.voice_id)
-        const languageInfo = LANGUAGES.find(l => l.code === voice?.languageCode)
-        const targetLanguage = languageInfo ? languageInfo.name.split(' ')[0] : 'English'
-
         return await generateVideoScript({
           niche: series.niche,
           title: series.series_name,
           duration: series.video_duration,
-          style: style,
-          language: targetLanguage
+          style: style
         })
       })
 
@@ -234,8 +228,7 @@ export const generateVideo = inngest.createFunction(
         })
 
         if (!result.success) {
-          console.warn(`[Inngest] Failed to send email notification to ${email}: ${result.error}`)
-          return { success: false, error: result.error, emailSentTo: email }
+          throw new Error(`Failed to send email notification: ${result.error}`)
         }
 
         return { success: true, emailSentTo: email }
